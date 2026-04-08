@@ -1191,19 +1191,22 @@ function setUserNav(user) {
 
 // ── Database sync ─────────────────────────────────────────────
 async function dbLoadAll() {
-  if (!currentUser) return;
+  if (!currentUser) return false;
   const uid = currentUser.id;
   const [portRes, watchRes, alertRes] = await Promise.all([
     sb.from('portfolios').select('*').eq('user_id', uid),
     sb.from('watchlists').select('*').eq('user_id', uid),
     sb.from('alerts').select('*').eq('user_id', uid),
   ]);
+  if (portRes.error) console.error('dbLoadAll portfolios:', portRes.error.message);
+  if (watchRes.error) console.error('dbLoadAll watchlists:', watchRes.error.message);
+  if (alertRes.error) console.error('dbLoadAll alerts:', alertRes.error.message);
   if (portRes.data?.length) {
     appState.holdings = portRes.data.map(r => ({
       ticker: r.ticker, name: r.name || r.ticker,
       sector: r.sector || '', market: r.market || '',
       qty: parseFloat(r.qty), buy: parseFloat(r.buy_price),
-      currentPrice: parseFloat(r.buy_price), // will be refreshed
+      currentPrice: parseFloat(r.buy_price),
       dbId: r.id,
     }));
   }
@@ -1221,6 +1224,8 @@ async function dbLoadAll() {
       triggered: r.triggered, dbId: r.id,
     }));
   }
+  console.log(`dbLoadAll: ${appState.holdings.length} holdings, ${appState.watchlist.length} watchlist, ${appState.alerts.length} alerts`);
+  return true;
 }
 
 async function dbSaveHolding(holding) {
@@ -1310,11 +1315,29 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// Check for existing session on load
-// Also handles email confirmation redirect (Supabase puts tokens in URL hash)
+// On load — restore session and portfolio if user is already logged in
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
+  if (session?.user) {
+    currentUser = session.user;
+    setUserNav(currentUser);
+    await dbLoadAll();
+    if (appState.holdings.length) {
+      showScreen('screen-dashboard');
+      const existing = localStorage.getItem('fw_target_return');
+      if (!existing) setTimeout(showTargetReturnModal, 1200);
+    } else {
+      // Logged in but no holdings — show onboarding
+      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+      document.getElementById('screen-onboarding').style.display = 'block';
+      document.getElementById('screen-onboarding').classList.add('active');
+      document.getElementById('navTabs').style.display = 'none';
+      document.getElementById('navHoldings').style.display = 'none';
+      document.getElementById('navGetStarted').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'inline-flex';
+      document.getElementById('indicesStrip').style.display = 'none';
+    }
+  } else {
     document.getElementById('navGetStarted').style.display = 'inline-block';
   }
 })();
@@ -1914,7 +1937,16 @@ async function addHolding() {
   const newHolding = { ticker, name, buy, qty, sector: sector||'Other', market: market||'Global', currentPrice };
   appState.holdings.push(newHolding);
   appState.priceCache[ticker] = { price: currentPrice, change: hSelectedStock.change, name, sector };
-  dbSaveHolding(newHolding); // save to Supabase (non-blocking)
+
+  // Save to Supabase — await so we know it worked
+  if (currentUser) {
+    await dbSaveHolding(newHolding);
+    if (!newHolding.dbId) {
+      console.warn('dbSaveHolding did not return an id — may not have saved');
+    }
+  } else {
+    showToast('⚠ Not signed in — holding added locally only');
+  }
 
   renderHoldingsTable();
   clearHoldingSelection();
@@ -1924,7 +1956,7 @@ async function addHolding() {
 function removeHolding(idx) {
   const holding = appState.holdings[idx];
   appState.holdings.splice(idx, 1);
-  dbDeleteHolding(holding); // remove from Supabase (non-blocking)
+  dbDeleteHolding(holding);
   renderHoldingsTable();
 }
 
@@ -2021,12 +2053,21 @@ async function selectSuggestion(ticker, name, sector) {
   document.getElementById('hSelected').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function finishHoldings() {
+async function finishHoldings() {
   if (!appState.holdings.length) { showToast('Add at least one holding to continue.'); return; }
+
+  // Safety net: re-save any holdings that didn't get a dbId (e.g. if save failed silently)
+  if (currentUser) {
+    const unsaved = appState.holdings.filter(h => !h.dbId);
+    if (unsaved.length) {
+      showToast('Saving portfolio...');
+      await Promise.all(unsaved.map(h => dbSaveHolding(h)));
+    }
+  }
+
   renderDashboard();
   renderNews();
   showScreen('screen-dashboard');
-  // Show target return popup after a short delay — only if not already set
   const existing = localStorage.getItem('fw_target_return');
   if (!existing) setTimeout(showTargetReturnModal, 800);
 }
