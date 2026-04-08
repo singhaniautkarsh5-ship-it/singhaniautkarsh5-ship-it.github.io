@@ -1087,6 +1087,23 @@
 // ════════════════════════════════════════
 // CONFIG — update keys here
 // ════════════════════════════════════════
+
+// Global error catcher — shows errors visibly for debugging
+window.onerror = function(msg, src, line, col, err) {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c0392b;color:#fff;padding:12px 16px;font-size:13px;font-family:monospace;z-index:9999;';
+  div.textContent = 'JS ERROR line ' + line + ': ' + msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 10000);
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c0392b;color:#fff;padding:12px 16px;font-size:13px;font-family:monospace;z-index:9999;';
+  div.textContent = 'PROMISE ERROR: ' + (e.reason?.message || e.reason || 'unknown');
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 10000);
+});
 const CONFIG = {
   TD_KEY:         'be5cb92f2c744ed98fd46f787a62088d',
   MARKETAUX_KEY:  'PASTE_YOUR_MARKETAUX_KEY_HERE',
