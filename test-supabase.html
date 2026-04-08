@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Supabase Test</title></head>
+<body>
+<div id="log" style="font-family:monospace;padding:20px;white-space:pre"></div>
+<button onclick="testSignOut()">Test Sign Out</button>
+<button onclick="testAdd()">Test Add</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+function log(msg) {
+  document.getElementById('log').textContent += msg + '\n';
+  console.log(msg);
+}
+
+log('Script started');
+log('supabase global type: ' + typeof supabase);
+log('supabase keys: ' + Object.keys(supabase || {}).join(', '));
+
+try {
+  const { createClient } = supabase;
+  log('createClient type: ' + typeof createClient);
+  const sb = createClient(
+    'https://mbjfkvuyggsmaaczsjlf.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iamZrdnV5Z2dzbWFhY3pzamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDExMTYsImV4cCI6MjA5MDcxNzExNn0.mPFwA3ppkdM5Qsn9nlFmuCQjJt--1uL_bURRSjTKZQ0'
+  );
+  log('sb created: ' + typeof sb);
+  log('sb.auth type: ' + typeof sb.auth);
+  log('sb.from type: ' + typeof sb.from);
+
+  async function testSignOut() {
+    log('signOut clicked');
+    const { error } = await sb.auth.signOut();
+    log('signOut result: ' + (error ? error.message : 'ok'));
+  }
+
+  async function testAdd() {
+    log('testAdd clicked');
+    const { data, error } = await sb.from('portfolios').select('*').limit(1);
+    log('query result: ' + JSON.stringify(error || data));
+  }
+
+  window.testSignOut = testSignOut;
+  window.testAdd = testAdd;
+
+} catch(e) {
+  log('ERROR: ' + e.message);
+}
+</script>
+</body>
+</html>
