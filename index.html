@@ -1279,28 +1279,27 @@ async function dbUpdateAlertTriggered(alert) {
 
 // ── Bootstrap: listen for auth changes ───────────────────────
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
+  // PAGE_REFRESH is handled by DOMContentLoaded — only handle new sign-ins here
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    return;
+  }
+  if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
     currentUser = session.user;
     setUserNav(currentUser);
     hideAuthScreen();
     const name = currentUser.email.split('@')[0];
-
     await dbLoadAll();
-
     if (appState.holdings.length) {
-      // Returning user with portfolio → go straight to dashboard
       showToast(`✓ Welcome back, ${name}!`);
+      await renderDashboard();
+      renderNews();
       showScreen('screen-dashboard');
-      // Show target return popup if not set
       const existing = localStorage.getItem('fw_target_return');
       if (!existing) setTimeout(showTargetReturnModal, 1200);
     } else {
-      // New user or user with no holdings → show onboarding flow
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        showToast(`✓ Welcome to FinWise, ${name}! Let's get started.`);
-      }
-      // Show onboarding with correct nav state
-      document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+      showToast(`✓ Welcome to FinWise, ${name}! Let's get started.`);
+      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
       document.getElementById('screen-onboarding').style.display = 'block';
       document.getElementById('screen-onboarding').classList.add('active');
       document.getElementById('navTabs').style.display = 'none';
@@ -1310,37 +1309,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
       document.getElementById('indicesStrip').style.display = 'none';
       appState.currentScreen = 'screen-onboarding';
     }
-  } else {
-    currentUser = null;
   }
 });
 
-// On load — restore session and portfolio if user is already logged in
-(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) {
-    currentUser = session.user;
-    setUserNav(currentUser);
-    await dbLoadAll();
-    if (appState.holdings.length) {
-      showScreen('screen-dashboard');
-      const existing = localStorage.getItem('fw_target_return');
-      if (!existing) setTimeout(showTargetReturnModal, 1200);
-    } else {
-      // Logged in but no holdings — show onboarding
-      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
-      document.getElementById('screen-onboarding').style.display = 'block';
-      document.getElementById('screen-onboarding').classList.add('active');
-      document.getElementById('navTabs').style.display = 'none';
-      document.getElementById('navHoldings').style.display = 'none';
-      document.getElementById('navGetStarted').style.display = 'none';
-      document.getElementById('userMenu').style.display = 'inline-flex';
-      document.getElementById('indicesStrip').style.display = 'none';
-    }
-  } else {
-    document.getElementById('navGetStarted').style.display = 'inline-block';
-  }
-})();
+// Session restored in DOMContentLoaded below
 
 // ════════════════════════════════════════
 // STATE
@@ -3758,11 +3730,37 @@ function showToast(msg) {
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderHoldingsTable();
   renderAlerts();
   renderHoldingSuggestions();
+
+  // Restore session on page load / refresh
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    setUserNav(currentUser);
+    await dbLoadAll();
+    if (appState.holdings.length) {
+      await renderDashboard();
+      renderNews();
+      showScreen('screen-dashboard');
+      const existing = localStorage.getItem('fw_target_return');
+      if (!existing) setTimeout(showTargetReturnModal, 1200);
+    } else {
+      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+      document.getElementById('screen-onboarding').style.display = 'block';
+      document.getElementById('screen-onboarding').classList.add('active');
+      document.getElementById('navTabs').style.display = 'none';
+      document.getElementById('navHoldings').style.display = 'none';
+      document.getElementById('navGetStarted').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'inline-flex';
+      document.getElementById('indicesStrip').style.display = 'none';
+    }
+  } else {
+    document.getElementById('navGetStarted').style.display = 'inline-block';
+  }
 });
 </script>
 </body>
