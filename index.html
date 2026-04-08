@@ -1648,14 +1648,122 @@ function closeIdxModal(e) {
 }
 
 const IPS_QUESTIONS = [
-  { id:'age', text:'How old are you?', type:'options', options:['Under 25','25–34','35–44','45–54','55+'] },
-  { id:'goal', text:'What is your main investment goal?', type:'options', options:['Build long-term wealth','Save for retirement','Save for a big purchase','Generate regular income','Just beat inflation'] },
-  { id:'horizon', text:'How long can you keep your money invested before you need it?', type:'options', options:['Less than 1 year','1–3 years','3–7 years','7–15 years','15+ years'] },
-  { id:'risk', text:'If your portfolio dropped 20% in a month, what would you do?', type:'options', options:['Sell everything immediately','Sell some to reduce risk','Hold and wait it out','Buy more — it\'s a great opportunity'] },
-  { id:'income', text:'What is your approximate annual income?', type:'options', options:['Under $20,000','$20,000–$50,000','$50,000–$100,000','$100,000–$250,000','$250,000+'] },
-  { id:'knowledge', text:'How would you describe your investing knowledge?', type:'options', options:['Complete beginner','I know the basics','I\'m fairly comfortable','I\'m experienced'] },
-  { id:'savings', text:'What percentage of your income can you invest monthly?', type:'range', min:1, max:50, unit:'%', labels:['1%','50%'] },
-  { id:'market', text:'Which markets are you most interested in?', type:'options', options:['My home country only','USA (S&P 500, NASDAQ)','India (NSE/BSE)','Global mix','I\'m open to anything'] },
+  // ── SECTION 1: Risk Capacity ─────────────────────────────
+  {
+    id: 'age',
+    section: 'About You',
+    icon: '👤',
+    text: 'How old are you?',
+    sub: 'Your age helps us understand your investment horizon and capacity for risk.',
+    type: 'options',
+    options: ['Under 25', '25–34', '35–44', '45–54', '55–64', '65 or older'],
+    scores:  [12, 11, 9, 7, 5, 3],
+  },
+  {
+    id: 'income',
+    section: 'About You',
+    icon: '💷',
+    text: 'What is your approximate annual income from all sources?',
+    sub: 'Combined income if you have multiple sources. Used to assess your financial capacity.',
+    type: 'options',
+    options: ['Under £20,000', '£20,000–£39,999', '£40,000–£74,999', '£75,000–£149,999', '£150,000 or more'],
+    scores:  [3, 4, 5, 7, 8],
+  },
+  {
+    id: 'liquidity',
+    section: 'About You',
+    icon: '🛟',
+    text: 'If you lost your income unexpectedly, how long could you cover your living costs before needing to withdraw from investments?',
+    sub: 'This tells us how much of a financial buffer you have.',
+    type: 'options',
+    options: ['Less than 3 months', '3–6 months', '6–12 months', 'Over 1 year — I wouldn\'t need to touch investments'],
+    scores:  [2, 4, 5, 6],
+  },
+  {
+    id: 'debt',
+    section: 'About You',
+    icon: '⚖️',
+    text: 'How would you describe your current debt situation?',
+    sub: 'Includes mortgages, student loans, credit cards, car finance.',
+    type: 'options',
+    options: ['Debt-free or very low debt', 'Manageable debt — I pay it comfortably', 'Significant debt — takes a meaningful portion of my income', 'High debt — it\'s a real financial pressure'],
+    scores:  [7, 6, 4, 3],
+  },
+  // ── SECTION 2: Risk Tolerance ────────────────────────────
+  {
+    id: 'drawdown',
+    section: 'Your Risk Appetite',
+    icon: '📉',
+    text: 'If your portfolio fell 15% in value over 3 months, what would you most likely do?',
+    sub: 'Be honest — there\'s no right answer. This reveals your emotional response to losses.',
+    type: 'options',
+    options: ['Sell everything — I can\'t afford to lose this money', 'Sell some to reduce exposure', 'Hold steady and wait for recovery', 'Buy more — I\'d see it as a buying opportunity'],
+    scores:  [0, 3, 6, 8],
+  },
+  {
+    id: 'volatility',
+    section: 'Your Risk Appetite',
+    icon: '📊',
+    text: 'Which portfolio would you be most comfortable holding over 10 years?',
+    sub: 'The charts below show hypothetical best and worst outcomes over 1 year for each £10,000 invested.',
+    type: 'portfolio_choice',
+    options: [
+      { label: 'Portfolio A — Stable', detail: 'Best: £10,200 · Worst: £9,850', desc: 'Very low fluctuation, modest growth' },
+      { label: 'Portfolio B — Balanced', detail: 'Best: £11,200 · Worst: £9,200', desc: 'Some ups and downs, moderate growth' },
+      { label: 'Portfolio C — Growth', detail: 'Best: £12,500 · Worst: £8,500', desc: 'Significant swings, higher potential' },
+      { label: 'Portfolio D — Aggressive', detail: 'Best: £14,000 · Worst: £7,000', desc: 'Large fluctuations, maximum growth aim' },
+    ],
+    scores: [1, 4, 6, 8],
+  },
+  {
+    id: 'max_loss',
+    section: 'Your Risk Appetite',
+    icon: '🔴',
+    text: 'What is the maximum one-year loss you could tolerate without selling your investments?',
+    sub: 'Below this point you\'d feel too uncomfortable to stay invested.',
+    type: 'options',
+    options: ['0% — I cannot accept any loss', 'Up to 5%', 'Up to 10%', 'Up to 15%', '15% or more — I\'m in it for the long run'],
+    scores:  [0, 2, 4, 6, 8],
+  },
+  {
+    id: 'knowledge',
+    section: 'Your Risk Appetite',
+    icon: '🎓',
+    text: 'How would you describe your investing knowledge?',
+    sub: 'Honest self-assessment helps us tailor recommendations to your experience level.',
+    type: 'options',
+    options: ['None — I\'m brand new to investing', 'Basic — I know what stocks and funds are', 'Moderate — I understand risk, diversification, and different asset classes', 'Advanced — I\'m comfortable with complex instruments and market dynamics'],
+    scores:  [0, 1, 3, 4],
+  },
+  // ── SECTION 3: Time Horizon ──────────────────────────────
+  {
+    id: 'horizon',
+    section: 'Your Timeline',
+    icon: '🗓️',
+    text: 'How long do you plan to keep this money invested before you start withdrawing?',
+    sub: 'Longer horizons allow you to ride out short-term volatility.',
+    type: 'options',
+    options: ['Less than 1 year', '1–3 years', '3–5 years', '6–10 years', 'More than 10 years'],
+    scores:  [1, 1, 3, 7, 10],
+  },
+  // ── SECTION 4: Portfolio Objective ───────────────────────
+  {
+    id: 'objective',
+    section: 'Your Goal',
+    icon: '🎯',
+    text: 'Which statement best describes what you want this investment to do for you?',
+    sub: 'Your primary objective shapes the entire portfolio strategy.',
+    type: 'options',
+    options: [
+      'Protect my money — safety is everything, even if returns are low',
+      'Generate steady income — regular cash flow matters more than growth',
+      'Balance income and growth — I want some of both',
+      'Grow my wealth over the long term — income is secondary',
+      'Maximise growth at any cost — I only care about the biggest possible return',
+    ],
+    scores: [0, 1, 2, 3, 4],
+    objective_map: ['Safety', 'Conservative Income', 'Balanced', 'Growth', 'Aggressive Growth'],
+  },
 ];
 
 let ipsStep = 0;
@@ -1716,32 +1824,51 @@ function startIPS() { appState.userType = 'new'; ipsStep = 0; ipsAnswers = {}; r
 // ════════════════════════════════════════
 function renderIPSQuestion() {
   const q = IPS_QUESTIONS[ipsStep];
-  document.getElementById('ipsProgress').style.width = ((ipsStep+1)/IPS_QUESTIONS.length*100)+'%';
-  document.getElementById('qLabel').textContent = `Question ${ipsStep+1} of ${IPS_QUESTIONS.length}`;
-  document.getElementById('qText').textContent = q.text;
+  const pct = ((ipsStep + 1) / IPS_QUESTIONS.length * 100).toFixed(0);
+  document.getElementById('ipsProgress').style.width = pct + '%';
+  document.getElementById('qLabel').textContent = q.section + ' · ' + (ipsStep+1) + ' of ' + IPS_QUESTIONS.length;
+  document.getElementById('qText').textContent = q.icon + '  ' + q.text;
   const body = document.getElementById('qBody');
   document.getElementById('btnBack').style.visibility = ipsStep === 0 ? 'hidden' : 'visible';
   const next = document.getElementById('btnNext');
   next.disabled = !ipsAnswers[q.id];
 
-  if (q.type === 'options') {
-    body.innerHTML = `<div class="q-options">${q.options.map((o,i)=>`
-      <div class="q-option ${ipsAnswers[q.id]===o?'selected':''}" onclick="selectOption('${q.id}','${o.replace(/'/g,"\\'")}',this)">
-        <div class="opt-dot"></div><span>${o}</span>
-      </div>`).join('')}</div>`;
-  } else if (q.type === 'range') {
-    const val = ipsAnswers[q.id] || q.min;
-    body.innerHTML = `<div class="range-wrap">
-      <input type="range" min="${q.min}" max="${q.max}" step="1" value="${val}" id="rangeInput" oninput="onRange(this,'${q.id}')">
-      <div style="font-family:var(--font-head);font-size:2rem;font-weight:700;margin-top:1rem;color:var(--accent)">${val}${q.unit}</div>
-      <div class="range-labels"><span>${q.labels[0]}</span><span>${q.labels[1]}</span></div>
-    </div>`;
-    if (!ipsAnswers[q.id]) { ipsAnswers[q.id] = val; next.disabled = false; }
+  // Sub-text hint
+  let sub = document.getElementById('qSub');
+  if (!sub) {
+    sub = document.createElement('p');
+    sub.id = 'qSub';
+    sub.style.cssText = 'font-size:13px;color:var(--text2);margin:-4px 0 16px;line-height:1.6';
+    document.getElementById('qText').insertAdjacentElement('afterend', sub);
   }
+  sub.textContent = q.sub || '';
+
+  if (q.type === 'options') {
+    body.innerHTML = '<div class="q-options">' + q.options.map(function(o, i) {
+      const sel = ipsAnswers[q.id] === o ? 'selected' : '';
+      return `<div class="q-option ${sel}" data-qid="${q.id}" data-idx="${i}" onclick="selectOptionIdx(this)"><div class="opt-dot"></div><span>${o}</span></div>`;
+    }).join('') + '</div>';
+  } else if (q.type === 'portfolio_choice') {
+    body.innerHTML = '<div class="q-options">' + q.options.map(function(o, i) {
+      const sel = ipsAnswers[q.id] === o.label ? 'selected' : '';
+      return `<div class="q-option ${sel}" data-qid="${q.id}" data-idx="${i}" onclick="selectOptionIdx(this)" style="flex-direction:column;align-items:flex-start;gap:4px;padding:14px 18px"><div style="display:flex;align-items:center;gap:10px;width:100%"><div class="opt-dot"></div><span style="font-weight:600">${o.label}</span><span style="margin-left:auto;font-size:12px;color:var(--accent);font-family:var(--font-head)">${o.detail}</span></div><div style="font-size:12px;color:var(--text2);padding-left:26px">${o.desc}</div></div>`;
+    }).join('') + '</div>';
+  }
+}
+
+function selectOptionIdx(el) {
+  const qId = el.dataset.qid;
+  const idx  = parseInt(el.dataset.idx);
+  const q    = IPS_QUESTIONS.find(function(x) { return x.id === qId; });
+  const val  = q.type === 'portfolio_choice' ? q.options[idx].label : q.options[idx];
+  ipsAnswers[qId] = val;
+  document.querySelectorAll('.q-option').forEach(function(o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
+  document.getElementById('btnNext').disabled = false;
 }
 function selectOption(id, val, el) {
   ipsAnswers[id] = val;
-  document.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.q-option').forEach(function(o) { o.classList.remove('selected'); });
   el.classList.add('selected');
   document.getElementById('btnNext').disabled = false;
 }
@@ -1759,59 +1886,118 @@ function ipsPrev() { if (ipsStep > 0) { ipsStep--; renderIPSQuestion(); } }
 
 function computeIPSResult() {
   const a = ipsAnswers;
-  let score = 0;
-  if (['Under 25','25–34'].includes(a.age)) score += 3;
-  else if (a.age==='35–44') score += 2;
-  else score += 1;
-  if (a.risk==="Buy more — it's a great opportunity") score += 3;
-  else if (a.risk==="Hold and wait it out") score += 2;
-  else if (a.risk==="Sell some to reduce risk") score += 1;
-  if (['7–15 years','15+ years'].includes(a.horizon)) score += 3;
-  else if (a.horizon==='3–7 years') score += 2;
-  else score += 1;
-  if (a.goal==='Build long-term wealth') score += 2;
-  if (a.knowledge==="I'm experienced") score += 2;
-  else if (a.knowledge==="I'm fairly comfortable") score += 1;
 
-  let profile, alloc, suggestions;
-  if (score <= 6) {
-    profile = 'conservative';
-    alloc = [{label:'Bonds / Fixed Income', pct:55, color:'var(--green)'}, {label:'Equities', pct:25, color:'var(--accent)'}, {label:'Cash / Savings', pct:15, color:'var(--amber)'}, {label:'Alternatives', pct:5, color:'var(--purple)'}];
-    suggestions = [{icon:'🏛️', bg:'rgba(46,204,143,0.1)', title:'Government Bonds & Gilts', desc:'Low-risk, fixed return. Best for capital preservation.'}, {icon:'📊', bg:'rgba(79,142,247,0.1)', title:'Dividend ETFs (e.g. SCHD, VYM)', desc:'Stable companies paying regular income.'}, {icon:'💵', bg:'rgba(245,166,35,0.1)', title:'High-yield Savings / Money Market', desc:'Low risk, better than bank rates.'}];
-  } else if (score <= 11) {
-    profile = 'moderate';
-    alloc = [{label:'Equities', pct:55, color:'var(--accent)'}, {label:'Bonds', pct:30, color:'var(--green)'}, {label:'REITs', pct:10, color:'var(--purple)'}, {label:'Cash', pct:5, color:'var(--amber)'}];
-    suggestions = [{icon:'🌍', bg:'rgba(79,142,247,0.1)', title:'Global Index ETFs (MSCI World)', desc:'Diversified exposure across 1,500+ global companies.'}, {icon:'📈', bg:'rgba(46,204,143,0.1)', title:'Blue-chip Dividend Stocks', desc:'Stable large-caps with consistent dividend histories.'}, {icon:'🏠', bg:'rgba(155,127,232,0.1)', title:'Real Estate Investment Trusts', desc:'Property exposure without buying property.'}];
-  } else {
-    profile = 'aggressive';
-    alloc = [{label:'Equities', pct:75, color:'var(--accent)'}, {label:'Emerging Markets', pct:15, color:'var(--amber)'}, {label:'Bonds', pct:5, color:'var(--green)'}, {label:'Alternatives', pct:5, color:'var(--purple)'}];
-    suggestions = [{icon:'🚀', bg:'rgba(245,166,35,0.1)', title:'Growth Stocks & Tech ETFs', desc:'QQQ, ARK funds, individual growth companies.'}, {icon:'🌏', bg:'rgba(79,142,247,0.1)', title:'Emerging Market Equities', desc:'India, China, Brazil for high long-term potential.'}, {icon:'₿', bg:'rgba(155,127,232,0.1)', title:'Alternative Assets (5–10% max)', desc:'Crypto, commodities for diversification.'}];
+  // Score each question using the scores array from IPS_QUESTIONS
+  function getScore(qId) {
+    const q = IPS_QUESTIONS.find(function(x) { return x.id === qId; });
+    if (!q || !a[qId]) return 0;
+    if (q.type === 'portfolio_choice') {
+      const idx = q.options.findIndex(function(o) { return o.label === a[qId]; });
+      return idx >= 0 ? q.scores[idx] : 0;
+    }
+    const idx = q.options.indexOf(a[qId]);
+    return idx >= 0 ? q.scores[idx] : 0;
   }
 
-  const badge = document.getElementById('profileBadge');
-  badge.className = 'profile-badge ' + profile;
-  const names = {conservative:'🛡️ Conservative Investor', moderate:'⚖️ Balanced Investor', aggressive:'🚀 Growth Investor'};
-  badge.textContent = names[profile];
-  document.getElementById('ipsTitle').textContent = `You're a ${profile.charAt(0).toUpperCase()+profile.slice(1)} Investor`;
-  const descs = {
-    conservative:`Based on your answers, you prefer stability over high returns. Your priority is protecting what you have while earning modest, reliable growth. Capital preservation is key.`,
-    moderate:`You have a balanced approach — you're comfortable with some risk for better returns, but you're not chasing speculative gains. A diversified portfolio suits you well.`,
-    aggressive:`You have a long time horizon and high risk tolerance. You can stomach short-term volatility for the potential of high long-term returns. Growth assets are your sweet spot.`
+  // TD-style sections
+  const riskCapacityRaw = getScore('age') + getScore('income') + getScore('liquidity') + getScore('debt');
+  // Normalise to 0-34 range (max raw = 12+8+6+7 = 33)
+  const riskCapacity = Math.round(riskCapacityRaw / 33 * 34);
+
+  const riskToleranceRaw = getScore('drawdown') + getScore('volatility') + getScore('max_loss') + getScore('knowledge');
+  // Normalise to 0-34 range (max raw = 8+8+8+4 = 28)
+  const riskTolerance = Math.round(riskToleranceRaw / 28 * 34);
+
+  const timeHorizon = getScore('horizon'); // already 1-10
+
+  // Use lesser of risk capacity vs tolerance (TD methodology)
+  const riskScore = Math.min(riskCapacity, riskTolerance);
+
+  // Objective from last question
+  const objQ = IPS_QUESTIONS.find(function(x) { return x.id === 'objective'; });
+  const objIdx = objQ ? objQ.options.indexOf(a['objective']) : 2;
+  const objectiveLabel = objQ ? objQ.objective_map[objIdx] : 'Balanced';
+
+  // Map to profile (simplified TD matrix)
+  let profile, profileKey;
+  if (objIdx === 0 || timeHorizon <= 1) {
+    profile = 'Safety'; profileKey = 'safety';
+  } else if (riskScore <= 8 || timeHorizon <= 2) {
+    profile = 'Conservative Income'; profileKey = 'conservative';
+  } else if (riskScore <= 15) {
+    profile = 'Balanced Income'; profileKey = 'balanced_income';
+  } else if (riskScore <= 22) {
+    profile = 'Balanced'; profileKey = 'balanced';
+  } else if (riskScore <= 28) {
+    profile = 'Balanced Growth'; profileKey = 'balanced_growth';
+  } else if (riskScore <= 32) {
+    profile = 'Growth'; profileKey = 'growth';
+  } else {
+    profile = 'Aggressive Growth'; profileKey = 'aggressive';
+  }
+
+  const PROFILES = {
+    safety: {
+      icon: '🛡️', badgeClass: 'conservative',
+      alloc: [{label:'Cash / Money Market', pct:60, color:'var(--green)'}, {label:'Government Bonds', pct:30, color:'var(--accent)'}, {label:'Investment Grade Bonds', pct:10, color:'var(--amber)'}],
+      desc: 'Your priority is protecting capital. You prefer certainty over returns and need to be able to access your money at short notice.',
+      suggestions: [{icon:'💵', bg:'rgba(46,204,143,0.1)', title:'Money Market Funds', desc:'Near-cash returns with very low risk.'}, {icon:'🏛️', bg:'rgba(79,142,247,0.1)', title:'UK Gilts / US Treasuries', desc:'Government-backed, very safe fixed income.'}, {icon:'🏦', bg:'rgba(245,166,35,0.1)', title:'High-yield savings accounts', desc:'Better than standard bank rates, fully accessible.'}]
+    },
+    conservative: {
+      icon: '🌿', badgeClass: 'conservative',
+      alloc: [{label:'Bonds / Fixed Income', pct:55, color:'var(--green)'}, {label:'Equities', pct:30, color:'var(--accent)'}, {label:'Cash', pct:10, color:'var(--amber)'}, {label:'Alternatives', pct:5, color:'var(--purple)'}],
+      desc: 'You want steady income with some growth potential. You can handle small short-term losses but capital preservation remains important.',
+      suggestions: [{icon:'📊', bg:'rgba(79,142,247,0.1)', title:'Dividend ETFs (SCHD, VYM)', desc:'Stable large caps paying regular income.'}, {icon:'🏛️', bg:'rgba(46,204,143,0.1)', title:'Corporate & Government Bonds', desc:'Fixed return with modest risk.'}, {icon:'🌍', bg:'rgba(245,166,35,0.1)', title:'Low-volatility Global ETFs', desc:'Broad diversification with downside protection.'}]
+    },
+    balanced_income: {
+      icon: '⚖️', badgeClass: 'moderate',
+      alloc: [{label:'Equities', pct:45, color:'var(--accent)'}, {label:'Bonds', pct:40, color:'var(--green)'}, {label:'REITs', pct:10, color:'var(--purple)'}, {label:'Cash', pct:5, color:'var(--amber)'}],
+      desc: 'You want a mix of income and growth. You can handle moderate short-term losses and have a medium-term time horizon.',
+      suggestions: [{icon:'🌍', bg:'rgba(79,142,247,0.1)', title:'MSCI World Index ETF', desc:'1,500+ companies across 23 developed markets.'}, {icon:'🏠', bg:'rgba(155,127,232,0.1)', title:'Real Estate Investment Trusts', desc:'Property income without buying property.'}, {icon:'📈', bg:'rgba(46,204,143,0.1)', title:'Balanced Income Funds', desc:'Professionally managed income + growth blend.'}]
+    },
+    balanced: {
+      icon: '⚖️', badgeClass: 'moderate',
+      alloc: [{label:'Equities', pct:55, color:'var(--accent)'}, {label:'Bonds', pct:30, color:'var(--green)'}, {label:'REITs', pct:10, color:'var(--purple)'}, {label:'Cash', pct:5, color:'var(--amber)'}],
+      desc: 'You have a balanced approach — comfortable with moderate risk for better returns. A diversified portfolio suits you well.',
+      suggestions: [{icon:'🌍', bg:'rgba(79,142,247,0.1)', title:'Global Index ETFs', desc:'Diversified exposure across 1,500+ global companies.'}, {icon:'📈', bg:'rgba(46,204,143,0.1)', title:'Blue-chip Dividend Stocks', desc:'Stable large-caps with consistent dividends.'}, {icon:'🏠', bg:'rgba(155,127,232,0.1)', title:'REITs for property exposure', desc:'Property returns without the capital required.'}]
+    },
+    balanced_growth: {
+      icon: '📈', badgeClass: 'moderate',
+      alloc: [{label:'Equities', pct:65, color:'var(--accent)'}, {label:'Bonds', pct:20, color:'var(--green)'}, {label:'Alternatives', pct:10, color:'var(--purple)'}, {label:'Cash', pct:5, color:'var(--amber)'}],
+      desc: 'Growth is your priority but you still want some stability. You can handle significant short-term volatility for long-term gains.',
+      suggestions: [{icon:'🚀', bg:'rgba(245,166,35,0.1)', title:'Growth & Tech ETFs (QQQ)', desc:'Exposure to high-growth technology sector.'}, {icon:'🌏', bg:'rgba(79,142,247,0.1)', title:'Emerging Market ETFs', desc:'India, Brazil, Southeast Asia for long-term potential.'}, {icon:'📊', bg:'rgba(46,204,143,0.1)', title:'Factor ETFs (Momentum, Quality)', desc:'Rules-based strategies targeting above-market returns.'}]
+    },
+    growth: {
+      icon: '🚀', badgeClass: 'aggressive',
+      alloc: [{label:'Equities', pct:80, color:'var(--accent)'}, {label:'Emerging Markets', pct:10, color:'var(--amber)'}, {label:'Bonds', pct:5, color:'var(--green)'}, {label:'Alternatives', pct:5, color:'var(--purple)'}],
+      desc: 'You have a long time horizon and high risk tolerance. You can stomach significant short-term volatility for the potential of high long-term returns.',
+      suggestions: [{icon:'🚀', bg:'rgba(245,166,35,0.1)', title:'Growth Stocks & Tech ETFs', desc:'QQQ, individual growth companies.'}, {icon:'🌏', bg:'rgba(79,142,247,0.1)', title:'Emerging Market Equities', desc:'India, China, Brazil for high long-term potential.'}, {icon:'📊', bg:'rgba(155,127,232,0.1)', title:'Sector ETFs (AI, Healthcare, Energy)', desc:'Concentrated sector bets for higher returns.'}]
+    },
+    aggressive: {
+      icon: '⚡', badgeClass: 'aggressive',
+      alloc: [{label:'Equities', pct:90, color:'var(--accent)'}, {label:'Emerging Markets', pct:5, color:'var(--amber)'}, {label:'Alternatives', pct:5, color:'var(--purple)'}],
+      desc: 'You are solely focused on maximising long-term capital appreciation. You are comfortable with large losses in the short term and have a very long time horizon.',
+      suggestions: [{icon:'⚡', bg:'rgba(245,166,35,0.1)', title:'Individual Growth Stocks', desc:'Concentrated positions in high-conviction companies.'}, {icon:'🌏', bg:'rgba(79,142,247,0.1)', title:'Frontier Market ETFs', desc:'Highest risk, highest potential return markets.'}, {icon:'₿', bg:'rgba(155,127,232,0.1)', title:'Alternative Assets (5-10% max)', desc:'Crypto and commodities for diversification.'}]
+    },
   };
-  document.getElementById('ipsSub').textContent = descs[profile];
-  document.getElementById('allocGrid').innerHTML = alloc.map(a=>`
-    <div class="alloc-card">
-      <div class="alloc-pct" style="color:${a.color}">${a.pct}%</div>
-      <div class="alloc-label">${a.label}</div>
-    </div>`).join('');
-  document.getElementById('suggList').innerHTML = suggestions.map(s=>`
-    <div class="suggestion-item">
-      <div class="s-icon" style="background:${s.bg}">${s.icon}</div>
-      <div class="s-text"><h4>${s.title}</h4><p>${s.desc}</p></div>
-    </div>`).join('');
-  appState.ipsProfile = profile;
+
+  const p = PROFILES[profileKey];
+  const badge = document.getElementById('profileBadge');
+  badge.className = 'profile-badge ' + p.badgeClass;
+  badge.textContent = p.icon + ' ' + profile;
+  document.getElementById('ipsTitle').textContent = 'Your Investor Profile: ' + profile;
+  document.getElementById('ipsSub').innerHTML =
+    p.desc + '<br><br><span style="font-size:12px;color:var(--text3)">Risk Capacity: ' + riskCapacity + '/34 · Risk Tolerance: ' + riskTolerance + '/34 · Time Horizon Score: ' + timeHorizon + '/10</span>';
+  document.getElementById('allocGrid').innerHTML = p.alloc.map(function(a) {
+    return '<div class="alloc-card"><div class="alloc-pct" style="color:' + a.color + '">' + a.pct + '%</div><div class="alloc-label">' + a.label + '</div></div>';
+  }).join('');
+  document.getElementById('suggList').innerHTML = p.suggestions.map(function(s) {
+    return '<div class="suggestion-item"><div class="s-icon" style="background:' + s.bg + '">' + s.icon + '</div><div class="s-text"><h4>' + s.title + '</h4><p>' + s.desc + '</p></div></div>';
+  }).join('');
+  appState.ipsProfile = profileKey;
   showScreen('screen-ips-result');
 }
+
 
 // ════════════════════════════════════════
 // HOLDINGS
