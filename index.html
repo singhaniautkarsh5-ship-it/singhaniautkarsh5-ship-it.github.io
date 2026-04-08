@@ -1240,39 +1240,44 @@ function setUserNav(user) {
 async function dbLoadAll() {
   if (!currentUser) return false;
   const uid = currentUser.id;
-  const [portRes, watchRes, alertRes] = await Promise.all([
-    sb.from('portfolios').select('*').eq('user_id', uid),
-    sb.from('watchlists').select('*').eq('user_id', uid),
-    sb.from('alerts').select('*').eq('user_id', uid),
-  ]);
-  if (portRes.error) console.error('dbLoadAll portfolios:', portRes.error.message);
-  if (watchRes.error) console.error('dbLoadAll watchlists:', watchRes.error.message);
-  if (alertRes.error) console.error('dbLoadAll alerts:', alertRes.error.message);
-  if (portRes.data?.length) {
-    appState.holdings = portRes.data.map(r => ({
-      ticker: r.ticker, name: r.name || r.ticker,
-      sector: r.sector || '', market: r.market || '',
-      qty: parseFloat(r.qty), buy: parseFloat(r.buy_price),
-      currentPrice: parseFloat(r.buy_price),
-      dbId: r.id,
-    }));
+  try {
+    const [portRes, watchRes, alertRes] = await Promise.all([
+      sb.from('portfolios').select('*').eq('user_id', uid),
+      sb.from('watchlists').select('*').eq('user_id', uid),
+      sb.from('alerts').select('*').eq('user_id', uid),
+    ]);
+    if (portRes.error) console.error('portfolios error:', portRes.error.message);
+    if (watchRes.error) console.error('watchlists error:', watchRes.error.message);
+    if (alertRes.error) console.error('alerts error:', alertRes.error.message);
+    if (portRes.data?.length) {
+      appState.holdings = portRes.data.map(r => ({
+        ticker: r.ticker, name: r.name || r.ticker,
+        sector: r.sector || '', market: r.market || '',
+        qty: parseFloat(r.qty), buy: parseFloat(r.buy_price),
+        currentPrice: parseFloat(r.buy_price),
+        dbId: r.id,
+      }));
+    }
+    if (watchRes.data?.length) {
+      appState.watchlist = watchRes.data.map(r => ({
+        ticker: r.ticker, name: r.name || r.ticker,
+        sector: r.sector || '', price: 0, change: 0,
+        addedAt: new Date(r.added_at).getTime(), dbId: r.id,
+      }));
+    }
+    if (alertRes.data?.length) {
+      appState.alerts = alertRes.data.map(r => ({
+        ticker: r.ticker, direction: r.direction,
+        targetPrice: parseFloat(r.target_price),
+        triggered: r.triggered, dbId: r.id,
+      }));
+    }
+    console.log(`dbLoadAll: ${appState.holdings.length} holdings, ${appState.watchlist.length} watchlist, ${appState.alerts.length} alerts`);
+    return true;
+  } catch(e) {
+    console.error('dbLoadAll exception:', e.message);
+    return false;
   }
-  if (watchRes.data?.length) {
-    appState.watchlist = watchRes.data.map(r => ({
-      ticker: r.ticker, name: r.name || r.ticker,
-      sector: r.sector || '', price: 0, change: 0,
-      addedAt: new Date(r.added_at).getTime(), dbId: r.id,
-    }));
-  }
-  if (alertRes.data?.length) {
-    appState.alerts = alertRes.data.map(r => ({
-      ticker: r.ticker, direction: r.direction,
-      targetPrice: parseFloat(r.target_price),
-      triggered: r.triggered, dbId: r.id,
-    }));
-  }
-  console.log(`dbLoadAll: ${appState.holdings.length} holdings, ${appState.watchlist.length} watchlist, ${appState.alerts.length} alerts`);
-  return true;
 }
 
 async function dbSaveHolding(holding) {
@@ -1481,40 +1486,52 @@ let rtSocket = null, rtReconnectTimer = null, rtLastTick = {};
 function startRealtimeFeed() {
   if (!appState.holdings.length) return;
   stopRealtimeFeed();
-  // Only subscribe US tickers to WebSocket (global stocks refresh on load)
   const usSymbols = appState.holdings.filter(h => !h.ticker.includes('.')).map(h => h.ticker);
   if (!usSymbols.length) { showRealtimeBadge('eod'); return; }
-  const wsUrl = `${PROXY.replace('https://','wss://').replace('http://','ws://')}/ws/td`;
+  const wsUrl = PROXY.replace('https://','wss://').replace('http://','ws://') + '/ws/td';
   try {
     rtSocket = new WebSocket(wsUrl);
-    rtSocket.onopen = () => {
-      rtSocket.send(JSON.stringify({ action:'subscribe', params:{ symbols: usSymbols.join(',') } }));
-      showRealtimeBadge('live');
-      rtSocket._hb = setInterval(() => {
-        if (rtSocket.readyState === 1) rtSocket.send(JSON.stringify({ action:'heartbeat' }));
-      }, 10000);
+    const sock = rtSocket;
+    sock._hb = null;
+    sock.onopen = () => {
+      try {
+        sock.send(JSON.stringify({ action:'subscribe', params:{ symbols: usSymbols.join(',') } }));
+        showRealtimeBadge('live');
+        sock._hb = setInterval(() => {
+          try { if (sock.readyState === 1) sock.send(JSON.stringify({ action:'heartbeat' })); } catch(e) {}
+        }, 10000);
+      } catch(e) {}
     };
-    rtSocket.onmessage = e => {
-      const msg = JSON.parse(e.data);
-      if (msg.event !== 'price') return;
-      const ticker = msg.symbol, price = parseFloat(msg.price);
-      if (!ticker || isNaN(price) || rtLastTick[ticker] === price) return;
-      rtLastTick[ticker] = price;
-      const h = appState.holdings.find(x => x.ticker === ticker);
-      if (h) { h.currentPrice = price; patchPriceDOM(ticker, price, h.buy); patchKPIs(); checkAlerts(appState.holdings); }
+    sock.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type !== 'price') return;
+        const ticker = msg.symbol, price = parseFloat(msg.price);
+        if (!ticker || isNaN(price) || rtLastTick[ticker] === price) return;
+        rtLastTick[ticker] = price;
+        const h = appState.holdings.find(x => x.ticker === ticker);
+        if (h) { h.currentPrice = price; patchPriceDOM(ticker, price, h.buy); patchKPIs(); checkAlerts(appState.holdings); }
+      } catch(e) {}
     };
-    rtSocket.onclose = () => {
+    sock.onclose = () => {
+      try { if (sock._hb) { clearInterval(sock._hb); sock._hb = null; } } catch(e) {}
       showRealtimeBadge('eod');
-      if (rtSocket._hb) clearInterval(rtSocket._hb);
-      rtReconnectTimer = setTimeout(startRealtimeFeed, 8000);
+      rtReconnectTimer = setTimeout(startRealtimeFeed, 15000);
     };
-    rtSocket.onerror = () => showRealtimeBadge('eod');
+    sock.onerror = () => {
+      try { if (sock._hb) { clearInterval(sock._hb); sock._hb = null; } } catch(e) {}
+      showRealtimeBadge('eod');
+    };
   } catch(e) { showRealtimeBadge('eod'); }
 }
 
 function stopRealtimeFeed() {
-  if (rtSocket) { if (rtSocket._hb) clearInterval(rtSocket._hb); try { rtSocket.close(); } catch(e){} rtSocket = null; }
   if (rtReconnectTimer) { clearTimeout(rtReconnectTimer); rtReconnectTimer = null; }
+  if (rtSocket) {
+    try { if (rtSocket._hb) { clearInterval(rtSocket._hb); rtSocket._hb = null; } } catch(e) {}
+    try { rtSocket.onclose = null; rtSocket.onerror = null; rtSocket.close(); } catch(e) {}
+    rtSocket = null;
+  }
 }
 
 async function anthropicChat(system, userMsg, maxTokens=900) {
@@ -3959,19 +3976,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderHoldingSuggestions();
 
   // Restore session on page load / refresh
+  let session = null;
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-      currentUser = session.user;
-      setUserNav(currentUser);
-      await dbLoadAll();
-      if (appState.holdings.length) {
-        showScreen('screen-dashboard');
-        renderDashboard(); // non-blocking — don't await
-        renderNews();
-        const existing = localStorage.getItem('fw_target_return');
-        if (!existing) setTimeout(showTargetReturnModal, 1200);
-      } else {
+    const result = await sb.auth.getSession();
+    session = result?.data?.session || null;
+  } catch(e) {
+    console.error('getSession failed:', e.message);
+  }
+
+  if (session?.user) {
+    try { currentUser = session.user; } catch(e) {}
+    try { setUserNav(currentUser); } catch(e) { console.error('setUserNav:', e.message); }
+    try { await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
+
+    if (appState.holdings.length) {
+      try { showScreen('screen-dashboard'); } catch(e) {}
+      setTimeout(() => { try { renderDashboard(); } catch(e) { console.error('renderDashboard:', e.message); } }, 100);
+      setTimeout(() => { try { renderNews(); } catch(e) {} }, 200);
+      const existing = localStorage.getItem('fw_target_return');
+      if (!existing) setTimeout(showTargetReturnModal, 1400);
+    } else {
+      // Logged in but no holdings — show onboarding
+      try {
         document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
         document.getElementById('screen-onboarding').style.display = 'block';
         document.getElementById('screen-onboarding').classList.add('active');
@@ -3980,12 +4006,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('navGetStarted').style.display = 'none';
         document.getElementById('userMenu').style.display = 'inline-flex';
         document.getElementById('indicesStrip').style.display = 'none';
-      }
-    } else {
-      document.getElementById('navGetStarted').style.display = 'inline-block';
+      } catch(e) { console.error('onboarding nav:', e.message); }
     }
-  } catch(e) {
-    console.error('Session restore error:', e);
+  } else {
     document.getElementById('navGetStarted').style.display = 'inline-block';
   }
 });
