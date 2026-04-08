@@ -354,6 +354,27 @@
 
   /* ── INDEX DETAIL MODAL ── */
   .idx-modal-bg { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem; }
+
+  /* ── TARGET RETURN MODAL ── */
+  .target-modal-bg { position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px); }
+  .target-modal { background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:2rem;width:100%;max-width:460px;position:relative; }
+  .target-modal h3 { font-family:var(--font-head);font-size:1.3rem;font-weight:700;margin:0 0 .5rem; }
+  .target-modal p { font-size:14px;color:var(--text2);margin:0 0 1.75rem;line-height:1.6; }
+  .target-presets { display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem; }
+  .target-preset { padding:6px 14px;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .2s; }
+  .target-preset:hover,.target-preset.active { border-color:var(--accent);background:rgba(79,142,247,0.1);color:var(--accent); }
+  .target-input-row { display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem; }
+  .target-input-row input { flex:1;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-body);font-size:15px;font-weight:600;outline:none;transition:border-color .2s; }
+  .target-input-row input:focus { border-color:var(--accent); }
+  .target-input-row span { font-size:18px;font-weight:700;color:var(--text2); }
+  .target-progress-bar { height:6px;background:var(--bg3);border-radius:99px;margin-bottom:.5rem;overflow:hidden; }
+  .target-progress-fill { height:100%;border-radius:99px;background:var(--accent);transition:width .3s; }
+  .target-progress-label { font-size:11px;color:var(--text3);margin-bottom:1.5rem; }
+  /* Target return KPI card badge */
+  .target-badge { display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;margin-top:4px; }
+  .target-on-track { background:rgba(46,204,143,0.12);color:var(--green); }
+  .target-behind   { background:rgba(240,92,92,0.12);color:var(--red); }
+  .target-close    { background:rgba(245,166,35,0.12);color:var(--amber); }
   .idx-modal { background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:1.75rem;width:100%;max-width:620px;position:relative; }
   .idx-modal-header { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem; }
   .idx-modal-title { font-family:var(--font-head);font-size:1.3rem;font-weight:700; }
@@ -378,7 +399,13 @@
   .opt-inner h2 { font-family:var(--font-head); font-size:1.6rem; font-weight:700; margin-bottom:.4rem; }
   .opt-inner > p { color:var(--text2); font-size:14px; margin-bottom:2rem; line-height:1.6; }
   .sharpe-compare { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; }
-  @media(max-width:600px){ .sharpe-compare{grid-template-columns:1fr;} }
+  .opt-mode-card { background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:1.25rem;cursor:pointer;transition:all .2s; }
+  .opt-mode-card:hover { border-color:var(--border2); }
+  .opt-mode-card.active { border-color:var(--accent);background:rgba(79,142,247,0.06); }
+  .opt-mode-icon { font-size:24px;margin-bottom:.5rem; }
+  .opt-mode-title { font-weight:700;font-size:14px;margin-bottom:.4rem;color:var(--text); }
+  .opt-mode-desc { font-size:12px;color:var(--text2);line-height:1.6; }
+  @media(max-width:540px){ #modeCardORP,#modeCardGMV{grid-column:1/-1;} }
   .sharpe-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; text-align:center; }
   .sharpe-card.highlight { border-color:var(--accent); background:rgba(79,142,247,0.06); }
   .sharpe-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.75rem; }
@@ -590,14 +617,14 @@
     </div>
     <div id="authFormLogin">
       <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-field"><label>Password</label><div style="position:relative"><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:40px;box-sizing:border-box"><button type="button" onclick="togglePw('loginPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1">👁</button></div></div>
       <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
       <div class="auth-error" id="loginError"></div>
     </div>
     <div id="authFormSignup" style="display:none">
       <div class="auth-field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="signupPassword" placeholder="At least 6 characters"></div>
-      <div class="auth-field"><label>Confirm Password</label><input type="password" id="signupConfirm" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doSignup()"></div>
+      <div class="auth-field"><label>Password</label><div style="position:relative"><input type="password" id="signupPassword" placeholder="At least 6 characters" style="width:100%;padding-right:40px;box-sizing:border-box"><button type="button" onclick="togglePw('signupPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1">👁</button></div></div>
+      <div class="auth-field"><label>Confirm Password</label><div style="position:relative"><input type="password" id="signupConfirm" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doSignup()" style="width:100%;padding-right:40px;box-sizing:border-box"><button type="button" onclick="togglePw('signupConfirm',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1">👁</button></div></div>
       <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account</button>
       <div class="auth-error" id="signupError"></div>
     </div>
@@ -731,6 +758,12 @@
       </tbody>
     </table>
     <button class="btn-continue" onclick="finishHoldings()">Go to My Dashboard →</button>
+
+    <!-- Popular stock suggestions -->
+    <div id="holdingSuggestionsWrap" style="margin-top:2.5rem">
+      <div style="font-size:12px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem">Popular stocks &amp; ETFs to get you started</div>
+      <div id="holdingSuggestions" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem"></div>
+    </div>
   </div>
 </div>
 
@@ -865,30 +898,49 @@
 <div class="screen" id="screen-optimise">
   <div class="opt-inner">
     <h2>Portfolio Optimiser</h2>
-    <p>Using Modern Portfolio Theory and AI, we calculate the optimal weights for your holdings to maximise your risk-adjusted return — the Sharpe Ratio.</p>
+    <p>Choose an optimisation objective. Both use Modern Portfolio Theory — the difference is what they're solving for.</p>
+
+    <!-- Mode selector -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem">
+      <div class="opt-mode-card active" id="modeCardORP" onclick="selectOptMode('ORP')">
+        <div class="opt-mode-icon">⚡</div>
+        <div class="opt-mode-title">Optimal Risky Portfolio</div>
+        <div class="opt-mode-desc">Maximises your Sharpe Ratio — best possible return for every unit of risk. Ideal if you want the most efficient portfolio from your current holdings.</div>
+      </div>
+      <div class="opt-mode-card" id="modeCardGMV" onclick="selectOptMode('GMV')">
+        <div class="opt-mode-icon">🛡</div>
+        <div class="opt-mode-title">Global Minimum Variance</div>
+        <div class="opt-mode-desc">Finds the lowest possible risk regardless of return. Ideal if capital preservation is your priority — minimises volatility above all else.</div>
+      </div>
+    </div>
+
+    <!-- Metrics comparison -->
     <div class="sharpe-compare" id="sharpeCompare">
       <div class="sharpe-card">
-        <div class="sharpe-label">Current Sharpe Ratio</div>
+        <div class="sharpe-label">Current Portfolio</div>
         <div class="sharpe-val" id="currentSharpe" style="color:var(--amber)">—</div>
         <div class="sharpe-sub" id="currentSharpeDesc">Run the optimiser to calculate</div>
       </div>
       <div class="sharpe-card highlight">
-        <div class="sharpe-label">Optimised Sharpe Ratio</div>
+        <div class="sharpe-label" id="optCardLabel">Optimised Portfolio</div>
         <div class="sharpe-val" id="optSharpe" style="color:var(--green)">—</div>
-        <div class="sharpe-sub" id="optSharpeDesc">AI-optimised for maximum risk-adjusted return</div>
+        <div class="sharpe-sub" id="optSharpeDesc">Run below to see results</div>
       </div>
     </div>
+
     <div style="display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap">
-      <button class="opt-btn" id="runOptBtn" onclick="runOptimiser()">Run AI Optimiser →</button>
+      <button class="opt-btn" id="runOptBtn" onclick="runOptimiser()">⚡ Run Optimal Risky Portfolio →</button>
       <button class="opt-btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text)" onclick="showScreen('screen-holdings')">Edit Holdings</button>
     </div>
+
     <div class="ai-thinking" id="aiThinking" style="display:none">
       <div class="spin"></div>
-      <span id="aiThinkingText">Analysing your portfolio with Modern Portfolio Theory...</span>
+      <span id="aiThinkingText">Analysing your portfolio...</span>
     </div>
+
     <div id="optimiseResult" style="display:none">
       <div class="card" style="margin-bottom:1.5rem">
-        <div class="card-title">Weight Comparison — Current vs Optimised</div>
+        <div class="card-title" id="weightsTableTitle">Weight Comparison — Current vs Optimised</div>
         <table class="weights-table" id="weightsTable"></table>
       </div>
       <div class="ai-explanation" id="aiExplanation">
@@ -989,6 +1041,31 @@
   </div>
 </div>
 
+<!-- TARGET RETURN MODAL -->
+<div class="target-modal-bg" id="targetReturnModal" style="display:none">
+  <div class="target-modal">
+    <div style="font-size:28px;margin-bottom:.75rem">🎯</div>
+    <h3>What's your target return?</h3>
+    <p>Set an annual return goal for your portfolio. We'll track how your investments are performing against it.</p>
+    <div class="target-presets">
+      <button class="target-preset" onclick="setTargetPreset(5,this)">5% — Conservative</button>
+      <button class="target-preset" onclick="setTargetPreset(10,this)">10% — Moderate</button>
+      <button class="target-preset" onclick="setTargetPreset(15,this)">15% — Aggressive</button>
+      <button class="target-preset" onclick="setTargetPreset(20,this)">20% — Very Aggressive</button>
+    </div>
+    <div class="target-input-row">
+      <input type="number" id="targetReturnInput" min="1" max="100" placeholder="12" oninput="onTargetInput(this.value)">
+      <span>% per year</span>
+    </div>
+    <div class="target-progress-bar"><div class="target-progress-fill" id="targetProgressFill" style="width:0%"></div></div>
+    <div class="target-progress-label" id="targetProgressLabel">Enter your target return above</div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn-sm" onclick="dismissTargetModal()" style="background:var(--surface);border:1px solid var(--border);color:var(--text2)">Skip for now</button>
+      <button class="btn-sm btn-primary" onclick="saveTargetReturn()">Set Target →</button>
+    </div>
+  </div>
+</div>
+
 <!-- PERFORMANCE MODAL -->
 <div class="perf-modal-bg" id="perfModal" style="display:none" onclick="closePerfModal(event)">
   <div class="perf-modal">
@@ -1026,6 +1103,13 @@ const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY
 let currentUser = null;
 
 // ── Auth UI ───────────────────────────────────────────────────
+function togglePw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show  = input.type === 'password';
+  input.type  = show ? 'text' : 'password';
+  btn.style.opacity = show ? '1' : '0.4';
+}
+
 function showAuthScreen(tab = 'login') {
   document.getElementById('screen-auth').classList.add('show');
   switchAuthTab(tab);
@@ -1202,6 +1286,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
       // Returning user with portfolio → go straight to dashboard
       showToast(`✓ Welcome back, ${name}!`);
       showScreen('screen-dashboard');
+      // Show target return popup if not set
+      const existing = localStorage.getItem('fw_target_return');
+      if (!existing) setTimeout(showTargetReturnModal, 1200);
     } else {
       // New user or user with no holdings → show onboarding flow
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
@@ -1419,124 +1506,6 @@ async function anthropicChat(system, userMsg, maxTokens=900) {
 // ════════════════════════════════════════
 // FALLBACK MOCK DATA (used if API fails)
 // ════════════════════════════════════════
-const MOCK_PRICES = {
-  AAPL:     { price:213.50, change:1.8,  name:'Apple Inc.',         sector:'Technology',  market:'US',    color:'#1a1a2e' },
-  MSFT:     { price:417.20, change:0.9,  name:'Microsoft Corp.',    sector:'Technology',  market:'US',    color:'#0a3d62' },
-  GOOGL:    { price:178.30, change:-0.5, name:'Alphabet Inc.',      sector:'Technology',  market:'US',    color:'#1a3a1a' },
-  TSLA:     { price:248.0,  change:3.1,  name:'Tesla Inc.',         sector:'Consumer Goods',market:'US', color:'#3d1a0a' },
-  JPM:      { price:230.8,  change:0.4,  name:'JPMorgan Chase',     sector:'Finance',     market:'US',    color:'#0d1a3d' },
-  NVDA:     { price:892.0,  change:2.6,  name:'NVIDIA Corp.',       sector:'Technology',  market:'US',    color:'#1a0d3d' },
-  RELIANCE: { price:2920,   change:0.7,  name:'Reliance Industries',sector:'Energy',      market:'India', color:'#1a0a0a' },
-  TCS:      { price:4110,   change:0.3,  name:'Tata Consultancy',   sector:'Technology',  market:'India', color:'#0a1a3d' },
-  INFY:     { price:1890,   change:-0.2, name:'Infosys Ltd.',       sector:'Technology',  market:'India', color:'#0a1a1a' },
-  HDFC:     { price:1680,   change:0.5,  name:'HDFC Bank',          sector:'Finance',     market:'India', color:'#1a1a0a' },
-};
-
-const MOCK_COMPANY_DATA = {
-  AAPL: {
-    description: 'Apple designs, manufactures and markets consumer electronics, computer software and online services. Known for the iPhone, Mac, iPad and services ecosystem.',
-    founded: '1976', employees: '161,000', hq: 'Cupertino, CA, USA',
-    marketCap: '$3.3T', revenue: '$390B', exchange: 'NASDAQ',
-    peers: ['MSFT','GOOGL','META','AMZN','NVDA'],
-    ratios: {
-      pe:       { value: 29.4,  desc:'How much investors pay per £1 of earnings. Lower = cheaper stock.',     bad:[0,5],   ok:[5,15], good:[15,35], excellent:[35,999], unit:'x', benchmark:{bad:'<5',ok:'5–15',good:'15–35',excellent:'>35'}, sector_avg:28.1 },
-      pb:       { value: 44.2,  desc:'Market price vs book value. High PB may signal premium brand value.',   bad:[0,1],   ok:[1,3],  good:[3,10],  excellent:[10,999], unit:'x', benchmark:{bad:'<1',ok:'1–3',good:'3–10',excellent:'>10'}, sector_avg:15.3 },
-      roe:      { value: 164.5, desc:'How much profit the company generates from shareholder money.',        bad:[0,5],   ok:[5,15], good:[15,30], excellent:[30,999], unit:'%', benchmark:{bad:'<5%',ok:'5–15%',good:'15–30%',excellent:'>30%'}, sector_avg:42.1 },
-      de:       { value: 1.73,  desc:'Debt relative to equity. High ratio = more borrowed money = more risk.',bad:[3,999], ok:[1.5,3],good:[0.5,1.5],excellent:[0,0.5],unit:'x', benchmark:{bad:'>3',ok:'1.5–3',good:'0.5–1.5',excellent:'<0.5'}, sector_avg:0.85 },
-      grossMargin:{ value:45.2, desc:'Percentage of revenue kept after cost of goods sold.',                  bad:[0,15],  ok:[15,30],good:[30,45], excellent:[45,100], unit:'%', benchmark:{bad:'<15%',ok:'15–30%',good:'30–45%',excellent:'>45%'}, sector_avg:47.8 },
-      currentRatio:{ value:0.94,desc:'Ability to pay short-term debts. Above 1 is generally considered safe.',bad:[0,0.8],ok:[0.8,1.2],good:[1.2,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.8',ok:'0.8–1.2',good:'1.2–2',excellent:'>2'}, sector_avg:1.47 },
-      eps:      { value: 6.42, desc:'Earnings per share — how much profit is allocated to each share.',      bad:[0,1],   ok:[1,3],  good:[3,8],   excellent:[8,999],  unit:'$', benchmark:{bad:'<$1',ok:'$1–3',good:'$3–8',excellent:'>$8'}, sector_avg:4.21 },
-    }
-  },
-  MSFT: {
-    description: 'Microsoft develops and supports software, services, devices and solutions. Azure cloud, Office 365, LinkedIn, and gaming via Xbox are key divisions.',
-    founded: '1975', employees: '221,000', hq: 'Redmond, WA, USA',
-    marketCap: '$3.1T', revenue: '$245B', exchange: 'NASDAQ',
-    peers: ['AAPL','GOOGL','AMZN','ORCL','SAP'],
-    ratios: {
-      pe:       { value: 34.2,  desc:'How much investors pay per £1 of earnings.',                            bad:[0,5],  ok:[5,15], good:[15,35], excellent:[35,999], unit:'x', benchmark:{bad:'<5',ok:'5–15',good:'15–35',excellent:'>35'}, sector_avg:28.1 },
-      pb:       { value: 13.1,  desc:'Market price vs book value.',                                           bad:[0,1],  ok:[1,3],  good:[3,10],  excellent:[10,999], unit:'x', benchmark:{bad:'<1',ok:'1–3',good:'3–10',excellent:'>10'}, sector_avg:15.3 },
-      roe:      { value: 38.3,  desc:'Return on shareholder equity.',                                         bad:[0,5],  ok:[5,15], good:[15,30], excellent:[30,999], unit:'%', benchmark:{bad:'<5%',ok:'5–15%',good:'15–30%',excellent:'>30%'}, sector_avg:42.1 },
-      de:       { value: 0.31,  desc:'Debt to equity ratio.',                                                 bad:[3,999],ok:[1.5,3],good:[0.5,1.5],excellent:[0,0.5],unit:'x', benchmark:{bad:'>3',ok:'1.5–3',good:'0.5–1.5',excellent:'<0.5'}, sector_avg:0.85 },
-      grossMargin:{ value:69.8, desc:'Percentage of revenue kept after cost of goods.',                       bad:[0,15], ok:[15,30],good:[30,45], excellent:[45,100], unit:'%', benchmark:{bad:'<15%',ok:'15–30%',good:'30–45%',excellent:'>45%'}, sector_avg:47.8 },
-      currentRatio:{ value:1.77,desc:'Ability to cover short-term debts.',                                    bad:[0,0.8],ok:[0.8,1.2],good:[1.2,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.8',ok:'0.8–1.2',good:'1.2–2',excellent:'>2'}, sector_avg:1.47 },
-      eps:      { value: 11.45, desc:'Earnings per share.',                                                   bad:[0,1],  ok:[1,3],  good:[3,8],   excellent:[8,999],  unit:'$', benchmark:{bad:'<$1',ok:'$1–3',good:'$3–8',excellent:'>$8'}, sector_avg:4.21 },
-    }
-  },
-  RELIANCE: {
-    description: 'Reliance Industries is India\'s largest company by market cap, spanning petrochemicals, refining, oil & gas, retail (JioMart) and digital services (Jio).',
-    founded: '1966', employees: '236,000', hq: 'Mumbai, India',
-    marketCap: '₹19.8L Cr', revenue: '₹9.7L Cr', exchange: 'NSE / BSE',
-    peers: ['ONGC','IOC','BPCL','ADANIENT','NTPC'],
-    ratios: {
-      pe:       { value: 23.1, desc:'How much investors pay per ₹1 of earnings.', bad:[0,5],ok:[5,15],good:[15,35],excellent:[35,999],unit:'x', benchmark:{bad:'<5',ok:'5–15',good:'15–35',excellent:'>35'}, sector_avg:19.4 },
-      pb:       { value: 2.4,  desc:'Market price vs book value.', bad:[0,1],ok:[1,3],good:[3,10],excellent:[10,999],unit:'x', benchmark:{bad:'<1',ok:'1–3',good:'3–10',excellent:'>10'}, sector_avg:2.1 },
-      roe:      { value: 9.8,  desc:'Return on shareholder equity.', bad:[0,5],ok:[5,15],good:[15,30],excellent:[30,999],unit:'%', benchmark:{bad:'<5%',ok:'5–15%',good:'15–30%',excellent:'>30%'}, sector_avg:12.3 },
-      de:       { value: 0.41, desc:'Debt to equity ratio.', bad:[3,999],ok:[1.5,3],good:[0.5,1.5],excellent:[0,0.5],unit:'x', benchmark:{bad:'>3',ok:'1.5–3',good:'0.5–1.5',excellent:'<0.5'}, sector_avg:0.55 },
-      grossMargin:{ value:18.2,desc:'Revenue kept after production costs.', bad:[0,15],ok:[15,30],good:[30,45],excellent:[45,100],unit:'%', benchmark:{bad:'<15%',ok:'15–30%',good:'30–45%',excellent:'>45%'}, sector_avg:16.8 },
-      currentRatio:{ value:1.36,desc:'Ability to pay short-term debts.', bad:[0,0.8],ok:[0.8,1.2],good:[1.2,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.8',ok:'0.8–1.2',good:'1.2–2',excellent:'>2'}, sector_avg:1.22 },
-      eps:      { value: 98.4, desc:'Earnings per share in INR.', bad:[0,20],ok:[20,60],good:[60,150],excellent:[150,999],unit:'₹', benchmark:{bad:'<₹20',ok:'₹20–60',good:'₹60–150',excellent:'>₹150'}, sector_avg:82.1 },
-    }
-  },
-  TSLA: {
-    description: 'Tesla designs, develops and sells electric vehicles, energy generation and storage systems. Also provides vehicle software and full self-driving tech.',
-    founded: '2003', employees: '127,855', hq: 'Austin, TX, USA',
-    marketCap: '$790B', revenue: '$97B', exchange: 'NASDAQ',
-    peers: ['F','GM','RIVN','NIO','BYD'],
-    ratios: {
-      pe:       { value:59.1, desc:'How much investors pay per $1 of earnings. High PEs are common in high-growth sectors.', bad:[0,5],ok:[5,15],good:[15,35],excellent:[35,999],unit:'x', benchmark:{bad:'<5',ok:'5–15',good:'15–35',excellent:'>35'}, sector_avg:18.4 },
-      pb:       { value:10.8, desc:'Market price vs book value.', bad:[0,1],ok:[1,3],good:[3,10],excellent:[10,999],unit:'x', benchmark:{bad:'<1',ok:'1–3',good:'3–10',excellent:'>10'}, sector_avg:3.4 },
-      roe:      { value:18.2, desc:'Return on shareholder equity.', bad:[0,5],ok:[5,15],good:[15,30],excellent:[30,999],unit:'%', benchmark:{bad:'<5%',ok:'5–15%',good:'15–30%',excellent:'>30%'}, sector_avg:14.1 },
-      de:       { value:0.19, desc:'Debt to equity ratio.', bad:[3,999],ok:[1.5,3],good:[0.5,1.5],excellent:[0,0.5],unit:'x', benchmark:{bad:'>3',ok:'1.5–3',good:'0.5–1.5',excellent:'<0.5'}, sector_avg:1.2 },
-      grossMargin:{ value:17.9,desc:'Revenue kept after cost of goods.', bad:[0,15],ok:[15,30],good:[30,45],excellent:[45,100],unit:'%', benchmark:{bad:'<15%',ok:'15–30%',good:'30–45%',excellent:'>45%'}, sector_avg:16.2 },
-      currentRatio:{ value:1.84,desc:'Short-term debt coverage ability.', bad:[0,0.8],ok:[0.8,1.2],good:[1.2,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.8',ok:'0.8–1.2',good:'1.2–2',excellent:'>2'}, sector_avg:1.41 },
-      eps:      { value:2.34, desc:'Earnings per share.', bad:[0,1],ok:[1,3],good:[3,8],excellent:[8,999],unit:'$', benchmark:{bad:'<$1',ok:'$1–3',good:'$3–8',excellent:'>$8'}, sector_avg:3.21 },
-    }
-  },
-  JPM: {
-    description: 'JPMorgan Chase is America\'s largest bank by assets, providing investment banking, commercial banking, financial transaction processing and asset management.',
-    founded: '1799', employees: '309,926', hq: 'New York, USA',
-    marketCap: '$665B', revenue: '$160B', exchange: 'NYSE',
-    peers: ['BAC','WFC','GS','MS','C'],
-    ratios: {
-      pe:       { value:12.3, desc:'How much investors pay per $1 of earnings. Banks typically trade at lower PEs.', bad:[0,5],ok:[5,10],good:[10,18],excellent:[18,999],unit:'x', benchmark:{bad:'<5',ok:'5–10',good:'10–18',excellent:'>18'}, sector_avg:11.2 },
-      pb:       { value:1.84, desc:'Market price vs book value. Very important for banks.', bad:[0,0.5],ok:[0.5,1],good:[1,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.5',ok:'0.5–1',good:'1–2',excellent:'>2'}, sector_avg:1.52 },
-      roe:      { value:16.8, desc:'Return on shareholder equity.', bad:[0,5],ok:[5,10],good:[10,18],excellent:[18,999],unit:'%', benchmark:{bad:'<5%',ok:'5–10%',good:'10–18%',excellent:'>18%'}, sector_avg:12.4 },
-      de:       { value:1.19, desc:'Debt to equity. Banks naturally carry high debt — context matters here.', bad:[5,999],ok:[3,5],good:[1,3],excellent:[0,1],unit:'x', benchmark:{bad:'>5',ok:'3–5',good:'1–3',excellent:'<1'}, sector_avg:1.4 },
-      grossMargin:{ value:54.1,desc:'Net interest margin and fee income retained.', bad:[0,20],ok:[20,35],good:[35,50],excellent:[50,100],unit:'%', benchmark:{bad:'<20%',ok:'20–35%',good:'35–50%',excellent:'>50%'}, sector_avg:48.3 },
-      currentRatio:{ value:0.82,desc:'Banks have different liquidity metrics — this is less relevant than for non-banks.', bad:[0,0.6],ok:[0.6,0.9],good:[0.9,1.2],excellent:[1.2,999],unit:'x', benchmark:{bad:'<0.6',ok:'0.6–0.9',good:'0.9–1.2',excellent:'>1.2'}, sector_avg:0.88 },
-      eps:      { value:18.22,desc:'Earnings per share.', bad:[0,3],ok:[3,8],good:[8,18],excellent:[18,999],unit:'$', benchmark:{bad:'<$3',ok:'$3–8',good:'$8–18',excellent:'>$18'}, sector_avg:9.41 },
-    }
-  },
-  TCS: {
-    description: 'Tata Consultancy Services is India\'s largest IT services company, providing IT services, consulting and business solutions to global enterprises.',
-    founded: '1968', employees: '614,795', hq: 'Mumbai, India',
-    marketCap: '₹14.9L Cr', revenue: '₹2.4L Cr', exchange: 'NSE / BSE',
-    peers: ['INFY','WIPRO','HCLTECH','TECHM','LTIM'],
-    ratios: {
-      pe:       { value:26.4, desc:'How much investors pay per ₹1 of earnings.', bad:[0,5],ok:[5,15],good:[15,35],excellent:[35,999],unit:'x', benchmark:{bad:'<5',ok:'5–15',good:'15–35',excellent:'>35'}, sector_avg:28.1 },
-      pb:       { value:12.1, desc:'Market price vs book value.', bad:[0,1],ok:[1,3],good:[3,10],excellent:[10,999],unit:'x', benchmark:{bad:'<1',ok:'1–3',good:'3–10',excellent:'>10'}, sector_avg:15.3 },
-      roe:      { value:49.1, desc:'Return on shareholder equity. TCS has very high ROE due to asset-light model.', bad:[0,5],ok:[5,15],good:[15,30],excellent:[30,999],unit:'%', benchmark:{bad:'<5%',ok:'5–15%',good:'15–30%',excellent:'>30%'}, sector_avg:42.1 },
-      de:       { value:0.08, desc:'Debt to equity. TCS is virtually debt-free.', bad:[3,999],ok:[1.5,3],good:[0.5,1.5],excellent:[0,0.5],unit:'x', benchmark:{bad:'>3',ok:'1.5–3',good:'0.5–1.5',excellent:'<0.5'}, sector_avg:0.22 },
-      grossMargin:{ value:44.8,desc:'Revenue kept after service delivery costs.', bad:[0,15],ok:[15,30],good:[30,45],excellent:[45,100],unit:'%', benchmark:{bad:'<15%',ok:'15–30%',good:'30–45%',excellent:'>45%'}, sector_avg:47.8 },
-      currentRatio:{ value:2.44,desc:'Strong short-term liquidity position.', bad:[0,0.8],ok:[0.8,1.2],good:[1.2,2],excellent:[2,999],unit:'x', benchmark:{bad:'<0.8',ok:'0.8–1.2',good:'1.2–2',excellent:'>2'}, sector_avg:2.1 },
-      eps:      { value:116.3,desc:'Earnings per share in INR.', bad:[0,20],ok:[20,60],good:[60,150],excellent:[150,999],unit:'₹', benchmark:{bad:'<₹20',ok:'₹20–60',good:'₹60–150',excellent:'>₹150'}, sector_avg:82.1 },
-    }
-  }
-};
-
-const MOCK_NEWS = [
-  { id:1, headline:"Apple reports record Q1 revenue driven by iPhone 16 Pro demand in India and Southeast Asia", tag:"company", tickers:["AAPL"], time:"2h ago", source:"Reuters", impact:"positive", summary:"Revenue beat estimates by $4.2B" },
-  { id:2, headline:"Fed holds rates steady; markets eye June cut as inflation data comes in cooler than expected", tag:"macro", tickers:[], time:"3h ago", source:"Bloomberg", impact:"positive", summary:"Risk assets rally on rate cut hopes" },
-  { id:3, headline:"Reliance Jio surpasses 500M subscribers, analysts upgrade stock to Buy with ₹3,200 target", tag:"company", tickers:["RELIANCE"], time:"4h ago", source:"ET Markets", impact:"positive", summary:"Strong subscriber growth exceeds forecast" },
-  { id:4, headline:"Global technology stocks under pressure as US-China semiconductor export restrictions tighten", tag:"sector", tickers:["AAPL","MSFT","NVDA","TCS"], time:"5h ago", source:"FT", impact:"negative", summary:"Chip sector faces new regulatory headwinds" },
-  { id:5, headline:"Tesla cuts Model 3 prices in Europe by 6% amid rising competition from BYD and Volkswagen EV lineup", tag:"company", tickers:["TSLA"], time:"6h ago", source:"WSJ", impact:"negative", summary:"Margin pressure concerns weigh on shares" },
-  { id:6, headline:"JPMorgan Chase beats EPS estimates by 12%, raises full-year guidance on strong trading revenue", tag:"company", tickers:["JPM"], time:"8h ago", source:"CNBC", impact:"positive", summary:"Investment banking revenues surge 34% YoY" },
-  { id:7, headline:"TCS wins $2.1B multi-year outsourcing deal with European bank, largest contract in three years", tag:"company", tickers:["TCS"], time:"9h ago", source:"Mint", impact:"positive", summary:"Deal adds visibility to FY26 revenue pipeline" },
-  { id:8, headline:"India's IT sector sees record hiring slowdown as AI tools reduce headcount requirements at major firms", tag:"sector", tickers:["TCS","INFY"], time:"10h ago", source:"Economic Times", impact:"negative", summary:"Margin tailwinds but volume growth at risk" },
-  { id:9, headline:"Microsoft Azure revenue grows 31% YoY as enterprise AI adoption accelerates globally", tag:"company", tickers:["MSFT"], time:"11h ago", source:"Bloomberg", impact:"positive", summary:"Cloud segment now represents 53% of total revenue" },
-  { id:10, headline:"MSCI rebalancing adds three new Indian mid-cap stocks, triggers estimated $800M inflows", tag:"macro", tickers:["RELIANCE","TCS","HDFC"], time:"1d ago", source:"Reuters", impact:"positive", summary:"Passive fund flows expected over 3 trading days" },
-];
 
 const MOCK_INDICES = [
   { id:'sp500',   name:'S&P 500',      flag:'🇺🇸', value:5304.72, change:0.38,  pts:+20.1,  region:'US'    },
@@ -1992,11 +1961,156 @@ function renderHoldingsTable() {
   }).join('');
 }
 
+// ════════════════════════════════════════
+// HOLDING SUGGESTIONS
+// ════════════════════════════════════════
+const SUGGESTED_STOCKS = [
+  { ticker:'AAPL',   name:'Apple Inc.',          flag:'🇺🇸', sector:'Technology',    note:'World\'s largest company by market cap' },
+  { ticker:'MSFT',   name:'Microsoft',           flag:'🇺🇸', sector:'Technology',    note:'Azure cloud + AI leader' },
+  { ticker:'GOOGL',  name:'Alphabet (Google)',   flag:'🇺🇸', sector:'Technology',    note:'Search, YouTube, Google Cloud' },
+  { ticker:'AMZN',   name:'Amazon',              flag:'🇺🇸', sector:'Consumer',      note:'E-commerce + AWS cloud giant' },
+  { ticker:'NVDA',   name:'NVIDIA',              flag:'🇺🇸', sector:'Technology',    note:'Leading AI chip designer' },
+  { ticker:'JPM',    name:'JPMorgan Chase',      flag:'🇺🇸', sector:'Finance',       note:'Largest US bank by assets' },
+  { ticker:'SPY',    name:'S&P 500 ETF',         flag:'🇺🇸', sector:'ETF',           note:'Tracks 500 largest US companies' },
+  { ticker:'QQQ',    name:'NASDAQ-100 ETF',      flag:'🇺🇸', sector:'ETF',           note:'Top 100 NASDAQ tech stocks' },
+  { ticker:'RELIANCE.NS', name:'Reliance Industries', flag:'🇮🇳', sector:'Conglomerate', note:'India\'s largest company' },
+  { ticker:'TCS.NS', name:'Tata Consultancy',    flag:'🇮🇳', sector:'Technology',    note:'India\'s top IT services firm' },
+  { ticker:'HDFCBANK.NS', name:'HDFC Bank',      flag:'🇮🇳', sector:'Finance',       note:'India\'s largest private bank' },
+  { ticker:'INFY.NS', name:'Infosys',            flag:'🇮🇳', sector:'Technology',    note:'Global IT & consulting leader' },
+  { ticker:'TSLA',   name:'Tesla',               flag:'🇺🇸', sector:'EV/Energy',     note:'Electric vehicles & clean energy' },
+  { ticker:'VWRL.L', name:'Vanguard World ETF',  flag:'🇬🇧', sector:'ETF',           note:'Global equities — 3,700+ stocks' },
+];
+
+function renderHoldingSuggestions() {
+  const el = document.getElementById('holdingSuggestions');
+  if (!el) return;
+  el.innerHTML = SUGGESTED_STOCKS.map(s => `
+    <div onclick="selectSuggestion('${s.ticker}','${s.name.replace(/'/g,"\\'")}','${s.sector}')"
+      style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.85rem 1rem;cursor:pointer;transition:border-color .2s;display:flex;gap:10px;align-items:center"
+      onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:20px;flex-shrink:0">${s.flag}</span>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.ticker.replace('.NS','').replace('.L','')} · ${s.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${s.sector} · ${s.note}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function selectSuggestion(ticker, name, sector) {
+  document.getElementById('hSearch').value = name;
+  showToast(`Fetching ${ticker}...`);
+  const q = await getQuote(ticker) || {};
+  hSelectedStock = {
+    ticker, name: q.name || name, sector: q.sector || sector,
+    market: ticker.endsWith('.NS') || ticker.endsWith('.BO') ? 'India (NSE/BSE)'
+          : ticker.endsWith('.L') ? 'UK (LSE)' : 'US (NYSE/NASDAQ)',
+    price: q.price || 0, change: q.changesPercentage || 0,
+  };
+  document.getElementById('hSelected').style.display = 'block';
+  document.getElementById('hSelLogo').textContent = ticker.replace('.NS','').replace('.L','').slice(0,3);
+  document.getElementById('hSelName').textContent = hSelectedStock.name;
+  document.getElementById('hSelMeta').textContent = `${hSelectedStock.sector} · ${hSelectedStock.market}`;
+  document.getElementById('hSelPrice').textContent = q.price ? `${q.price.toFixed(2)}` : '—';
+  document.getElementById('hSelChange').textContent = q.changesPercentage
+    ? `${q.changesPercentage >= 0 ? '+' : ''}${q.changesPercentage.toFixed(2)}% today`
+    : '';
+  document.getElementById('hSelChange').style.color = (q.changesPercentage||0) >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('hBuy').value = q.price ? q.price.toFixed(2) : '';
+  document.getElementById('hBuy').focus();
+  // Scroll to the selected stock form
+  document.getElementById('hSelected').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function finishHoldings() {
   if (!appState.holdings.length) { showToast('Add at least one holding to continue.'); return; }
   renderDashboard();
   renderNews();
   showScreen('screen-dashboard');
+  // Show target return popup after a short delay — only if not already set
+  const existing = localStorage.getItem('fw_target_return');
+  if (!existing) setTimeout(showTargetReturnModal, 800);
+}
+
+// ════════════════════════════════════════
+// TARGET RETURN
+// ════════════════════════════════════════
+let appTargetReturn = parseFloat(localStorage.getItem('fw_target_return') || '0');
+
+function showTargetReturnModal() {
+  document.getElementById('targetReturnModal').style.display = 'flex';
+  if (appTargetReturn) {
+    document.getElementById('targetReturnInput').value = appTargetReturn;
+    onTargetInput(appTargetReturn);
+  }
+}
+
+function dismissTargetModal() {
+  document.getElementById('targetReturnModal').style.display = 'none';
+}
+
+function setTargetPreset(val, btn) {
+  document.querySelectorAll('.target-preset').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('targetReturnInput').value = val;
+  onTargetInput(val);
+}
+
+function onTargetInput(val) {
+  const v = parseFloat(val);
+  if (isNaN(v) || v <= 0) {
+    document.getElementById('targetProgressFill').style.width = '0%';
+    document.getElementById('targetProgressLabel').textContent = 'Enter your target return above';
+    return;
+  }
+  // Show expected return vs target
+  const expected = appState._portReturn || 0;
+  const ratio    = Math.min((expected / (v/100)) * 100, 100);
+  document.getElementById('targetProgressFill').style.width = ratio.toFixed(0) + '%';
+  document.getElementById('targetProgressFill').style.background =
+    ratio >= 90 ? 'var(--green)' : ratio >= 60 ? 'var(--amber)' : 'var(--red)';
+  const diff = ((expected * 100) - v).toFixed(1);
+  document.getElementById('targetProgressLabel').textContent =
+    ratio >= 90
+      ? `✓ Your portfolio is on track — expected ${(expected*100).toFixed(1)}% vs target ${v}%`
+      : ratio >= 60
+      ? `Your portfolio is close — ${Math.abs(diff)}% below target`
+      : `Your portfolio needs work — ${Math.abs(diff)}% below target`;
+  // Highlight matching preset
+  document.querySelectorAll('.target-preset').forEach(b => {
+    b.classList.toggle('active', b.textContent.startsWith(v+'%'));
+  });
+}
+
+function saveTargetReturn() {
+  const v = parseFloat(document.getElementById('targetReturnInput').value);
+  if (isNaN(v) || v <= 0 || v > 100) { showToast('Enter a valid percentage (1–100).'); return; }
+  appTargetReturn = v;
+  localStorage.setItem('fw_target_return', v);
+  // Save to Supabase if logged in (store in user metadata)
+  if (currentUser) sb.auth.updateUser({ data: { target_return: v } });
+  dismissTargetModal();
+  showToast(`🎯 Target set: ${v}% annual return`);
+  // Refresh KPI cards to show target badge
+  updateTargetKPI();
+}
+
+function updateTargetKPI() {
+  if (!appTargetReturn) return;
+  const returnCard = document.getElementById('kpi-return');
+  if (!returnCard) return;
+  const expected = appState._portReturn || 0;
+  const target   = appTargetReturn / 100;
+  const diff     = ((expected - target) * 100).toFixed(1);
+  const onTrack  = expected >= target * 0.9;
+  const close    = expected >= target * 0.6;
+  const cls      = onTrack ? 'target-on-track' : close ? 'target-close' : 'target-behind';
+  const label    = onTrack ? `✓ On track for ${appTargetReturn}%`
+                 : close   ? `~ Close to ${appTargetReturn}% target`
+                 : `${Math.abs(diff)}% below ${appTargetReturn}% target`;
+  // Remove existing badge if any
+  const old = returnCard.querySelector('.target-badge');
+  if (old) old.remove();
+  returnCard.insertAdjacentHTML('beforeend', `<div class="target-badge ${cls}">${label}</div>`);
 }
 
 // ════════════════════════════════════════
@@ -2034,16 +2148,43 @@ function buildDashboardDOM() {
   const pnlPct   = totalInvested ? (totalPnL/totalInvested*100) : 0;
   const positive = totalPnL >= 0;
 
+  // Portfolio Risk & Return (uses same data as optimiser)
+  const weights = h.map(x => (x.currentPrice * x.qty) / (totalCurrent || 1));
+  let portReturn = 0, portVariance = 0;
+  for (let i = 0; i < h.length; i++) portReturn += weights[i] * getReturnData(h[i].ticker).annReturn;
+  for (let i = 0; i < h.length; i++) {
+    for (let j = 0; j < h.length; j++) {
+      const si = getReturnData(h[i].ticker).volatility;
+      const sj = getReturnData(h[j].ticker).volatility;
+      portVariance += weights[i] * weights[j] * si * sj * getCorr(h[i].ticker, h[j].ticker);
+    }
+  }
+  const portRisk  = Math.sqrt(portVariance);
+  const sharpe    = portRisk > 0 ? ((portReturn - RISK_FREE) / portRisk) : 0;
+  const riskLabel = portRisk < 0.12 ? 'Low' : portRisk < 0.22 ? 'Moderate' : portRisk < 0.32 ? 'High' : 'Very High';
+  const riskColor = portRisk < 0.12 ? 'var(--green)' : portRisk < 0.22 ? 'var(--amber)' : 'var(--red)';
+  appState._portReturn = portReturn; // store for target modal
+
   document.getElementById('kpiGrid').innerHTML = [
-    {label:'Total Value',   val:'$'+totalCurrent.toLocaleString('en',{maximumFractionDigits:0}), change:null, id:'kpi-total'},
-    {label:'Total Invested',val:'$'+totalInvested.toLocaleString('en',{maximumFractionDigits:0}), change:null, id:'kpi-invested'},
-    {label:'Overall P&L',   val:(positive?'+':'')+'$'+Math.abs(totalPnL).toLocaleString('en',{maximumFractionDigits:0}), change:(positive?'+':'')+pnlPct.toFixed(2)+'%', pos:positive, id:'kpi-pnl'},
-    {label:'Holdings',      val:h.length, change:h.length+' positions'},
+    {label:'Total Value',    val:'$'+totalCurrent.toLocaleString('en',{maximumFractionDigits:0}), change:null, id:'kpi-total'},
+    {label:'Total Invested', val:'$'+totalInvested.toLocaleString('en',{maximumFractionDigits:0}), change:null, id:'kpi-invested'},
+    {label:'Overall P&L',    val:(positive?'+':'')+'$'+Math.abs(totalPnL).toLocaleString('en',{maximumFractionDigits:0}), change:(positive?'+':'')+pnlPct.toFixed(2)+'%', pos:positive, id:'kpi-pnl'},
+    {label:'Holdings',       val:h.length, change:h.length+' positions'},
   ].map(k=>`<div class="kpi-card" ${k.id?`id="${k.id}"`:''}>
     <div class="kpi-label">${k.label}</div>
     <div class="kpi-value" style="${k.pos!==undefined?(k.pos?'color:var(--green)':'color:var(--red)'):'color:var(--text)'}">${k.val}</div>
     ${k.change?`<div class="kpi-change" style="color:var(--text2)">${k.change}</div>`:''}
-  </div>`).join('');
+  </div>`).join('') +
+  `<div class="kpi-card" id="kpi-risk">
+    <div class="kpi-label">Portfolio Risk</div>
+    <div class="kpi-value" style="color:${riskColor}">${riskLabel}</div>
+    <div class="kpi-change" style="color:var(--text2)">${(portRisk*100).toFixed(1)}% volatility</div>
+  </div>
+  <div class="kpi-card" id="kpi-return">
+    <div class="kpi-label">Expected Return</div>
+    <div class="kpi-value" style="color:var(--green)">${(portReturn*100).toFixed(1)}% p.a.</div>
+    <div class="kpi-change" style="color:var(--text2)">Sharpe: ${sharpe.toFixed(2)}</div>
+  </div>`;
 
   const sorted = [...h].sort((a,b)=>(b.currentPrice*b.qty)-(a.currentPrice*a.qty));
   const maxVal = sorted[0] ? sorted[0].currentPrice * sorted[0].qty : 1;
@@ -2085,6 +2226,8 @@ function buildDashboardDOM() {
       <div class="holding-sparkline">${generateSparkline(pos, x.ticker)}</div>
     </div>`;
   }).join('');
+  // Show target return badge if target is set
+  setTimeout(updateTargetKPI, 100);
 }
 
 // ════════════════════════════════════════
@@ -2777,27 +2920,64 @@ function optimisePortfolio(holdings) {
   return bestWeights;
 }
 
+let activeOptMode = 'ORP';
+
+function selectOptMode(mode) {
+  activeOptMode = mode;
+  document.getElementById('modeCardORP').classList.toggle('active', mode === 'ORP');
+  document.getElementById('modeCardGMV').classList.toggle('active', mode === 'GMV');
+  const btn = document.getElementById('runOptBtn');
+  if (mode === 'ORP') {
+    btn.textContent = '⚡ Run Optimal Risky Portfolio →';
+    document.getElementById('optCardLabel').textContent = 'Optimal Risky Portfolio';
+  } else {
+    btn.textContent = '🛡 Run Min Variance Portfolio →';
+    document.getElementById('optCardLabel').textContent = 'Min Variance Portfolio';
+  }
+  document.getElementById('optimiseResult').style.display = 'none';
+  document.getElementById('optSharpe').textContent = '—';
+  document.getElementById('optSharpeDesc').textContent = 'Run below to see results';
+}
+
 function initOptimiser() {
   document.getElementById('optimiseResult').style.display = 'none';
   document.getElementById('aiThinking').style.display = 'none';
   if (!appState.holdings.length) return;
-  const n = appState.holdings.length;
-  const equalW = appState.holdings.map(()=>1/n);
-  const {sharpe} = calcPortfolioMetrics(appState.holdings, equalW);
-  const currentWeights = appState.holdings.map(h=>{
-    const val = h.currentPrice * h.qty;
-    return val;
-  });
+  const currentWeights = appState.holdings.map(h => h.currentPrice * h.qty);
   const totalVal = currentWeights.reduce((a,b)=>a+b,0);
   const normW = currentWeights.map(v=>v/totalVal);
   const cur = calcPortfolioMetrics(appState.holdings, normW);
   document.getElementById('currentSharpe').textContent = cur.sharpe.toFixed(2);
   document.getElementById('currentSharpeDesc').textContent =
-    cur.sharpe > 1.5 ? 'Excellent risk-adjusted return' :
-    cur.sharpe > 1   ? 'Good risk-adjusted return' :
-    cur.sharpe > 0.5 ? 'Moderate risk-adjusted return' : 'Below average — room to improve';
+    `Return: ${(cur.portReturn*100).toFixed(1)}% · Vol: ${(cur.portVol*100).toFixed(1)}% · Sharpe: ${cur.sharpe.toFixed(2)}`;
   appState._currentWeights = normW;
   appState._currentMetrics = cur;
+}
+
+// Global Minimum Variance — coordinate descent
+function calcMinVarianceWeights(holdings) {
+  const n = holdings.length;
+  if (n === 1) return [1];
+  const cov = [];
+  for (let i = 0; i < n; i++) {
+    cov[i] = [];
+    for (let j = 0; j < n; j++) {
+      const si = getReturnData(holdings[i].ticker).volatility;
+      const sj = getReturnData(holdings[j].ticker).volatility;
+      cov[i][j] = si * sj * getCorr(holdings[i].ticker, holdings[j].ticker);
+    }
+  }
+  let w = holdings.map(() => 1/n);
+  for (let iter = 0; iter < 500; iter++) {
+    for (let k = 0; k < n; k++) {
+      let grad = 0;
+      for (let j = 0; j < n; j++) grad += 2 * cov[k][j] * w[j];
+      w[k] = Math.max(0.02, Math.min(0.60, w[k] - 0.008 * grad));
+    }
+    const sum = w.reduce((a,b)=>a+b,0);
+    w = w.map(x=>x/sum);
+  }
+  return w;
 }
 
 async function runOptimiser() {
@@ -2806,84 +2986,82 @@ async function runOptimiser() {
   btn.disabled = true;
   document.getElementById('aiThinking').style.display = 'flex';
   document.getElementById('optimiseResult').style.display = 'none';
+  const isGMV = activeOptMode === 'GMV';
 
-  const thinkingMsgs = [
-    'Analysing your portfolio with Modern Portfolio Theory...',
-    'Simulating 6,000 portfolio weight combinations...',
-    'Calculating correlation matrix across holdings...',
-    'Identifying the maximum Sharpe ratio frontier...',
-    'Generating AI explanation of recommendations...'
-  ];
+  const msgs = isGMV
+    ? ['Building covariance matrix...','Running coordinate descent...','Minimising portfolio variance...','Verifying efficient frontier...','Generating AI explanation...']
+    : ['Analysing portfolio with MPT...','Simulating 6,000 combinations...','Calculating correlation matrix...','Finding maximum Sharpe frontier...','Generating AI explanation...'];
   let mi = 0;
-  const thinkInterval = setInterval(()=>{ mi=(mi+1)%thinkingMsgs.length; document.getElementById('aiThinkingText').textContent=thinkingMsgs[mi]; }, 900);
+  const ti = setInterval(() => { mi=(mi+1)%msgs.length; document.getElementById('aiThinkingText').textContent=msgs[mi]; }, 900);
 
-  await new Promise(r=>setTimeout(r,500));
-  const optWeights = optimisePortfolio(appState.holdings);
+  await new Promise(r=>setTimeout(r,400));
+  const optWeights = isGMV ? calcMinVarianceWeights(appState.holdings) : optimisePortfolio(appState.holdings);
   const optMetrics = calcPortfolioMetrics(appState.holdings, optWeights);
-  await new Promise(r=>setTimeout(r,1200));
-  clearInterval(thinkInterval);
-
-  document.getElementById('optSharpe').textContent = optMetrics.sharpe.toFixed(2);
-  document.getElementById('optSharpeDesc').textContent =
-    `Expected return: ${(optMetrics.portReturn*100).toFixed(1)}% | Volatility: ${(optMetrics.portVol*100).toFixed(1)}%`;
+  await new Promise(r=>setTimeout(r,1000));
+  clearInterval(ti);
 
   const curW = appState._currentWeights;
   const curM = appState._currentMetrics;
+
   document.getElementById('currentSharpeDesc').textContent =
-    `Expected return: ${(curM.portReturn*100).toFixed(1)}% | Volatility: ${(curM.portVol*100).toFixed(1)}%`;
+    `Return: ${(curM.portReturn*100).toFixed(1)}% · Vol: ${(curM.portVol*100).toFixed(1)}% · Sharpe: ${curM.sharpe.toFixed(2)}`;
+
+  if (isGMV) {
+    document.getElementById('currentSharpe').textContent = (curM.portVol*100).toFixed(1)+'%';
+    document.getElementById('optSharpe').textContent = (optMetrics.portVol*100).toFixed(1)+'%';
+    document.getElementById('optSharpeDesc').textContent =
+      `Minimum achievable volatility · Return: ${(optMetrics.portReturn*100).toFixed(1)}% · Sharpe: ${optMetrics.sharpe.toFixed(2)}`;
+  } else {
+    document.getElementById('currentSharpe').textContent = curM.sharpe.toFixed(2);
+    document.getElementById('optSharpe').textContent = optMetrics.sharpe.toFixed(2);
+    document.getElementById('optSharpeDesc').textContent =
+      `Return: ${(optMetrics.portReturn*100).toFixed(1)}% · Vol: ${(optMetrics.portVol*100).toFixed(1)}%`;
+  }
 
   const COLORS2 = ['#4f8ef7','#2ecc8f','#f5a623','#9b7fe8','#2dd4c0','#f05c5c','#60a5fa','#34d399'];
+  document.getElementById('weightsTableTitle').textContent = isGMV
+    ? 'Weight Comparison — Current vs Min Variance'
+    : 'Weight Comparison — Current vs Optimal Risky';
+
   document.getElementById('weightsTable').innerHTML = `
-    <thead><tr>
-      <th>Holding</th><th>Current Weight</th><th>Optimal Weight</th><th>Change</th><th>Action</th>
-    </tr></thead>
-    <tbody>${appState.holdings.map((h,i)=>{
-      const cw = (curW[i]*100).toFixed(1);
-      const ow = (optWeights[i]*100).toFixed(1);
+    <thead><tr><th>Holding</th><th>Current</th><th>${isGMV?'Min Variance':'Optimal'}</th><th>Change</th><th>Action</th></tr></thead>
+    <tbody>${appState.holdings.map((h,i) => {
+      const cw   = (curW[i]*100).toFixed(1);
+      const ow   = (optWeights[i]*100).toFixed(1);
       const diff = (optWeights[i]-curW[i])*100;
-      const pos = diff > 0;
-      const action = diff > 3 ? '▲ Increase' : diff < -3 ? '▼ Reduce' : '● Hold';
-      const actionCol = diff > 3 ? 'var(--green)' : diff < -3 ? 'var(--red)' : 'var(--text2)';
+      const pos  = diff>0;
+      const action    = diff>3?'▲ Increase':diff<-3?'▼ Reduce':'● Hold';
+      const actionCol = diff>3?'var(--green)':diff<-3?'var(--red)':'var(--text2)';
       return `<tr>
         <td><span class="ticker-tag">${h.ticker}</span> <span style="font-size:12px;color:var(--text2)">${h.name}</span></td>
-        <td style="color:var(--text2)">${cw}%<br>
-          <div style="margin-top:4px"><div class="weight-bar" style="width:${Math.min(cw,100)*1.5}px;background:var(--surface2)"></div></div>
-        </td>
-        <td><strong>${ow}%</strong><br>
-          <div style="margin-top:4px"><div class="weight-bar" style="width:${Math.min(ow,100)*1.5}px;background:${COLORS2[i%COLORS2.length]}"></div></div>
-        </td>
+        <td style="color:var(--text2)">${cw}%<div style="margin-top:4px"><div class="weight-bar" style="width:${Math.min(parseFloat(cw),100)*1.5}px;background:var(--surface2)"></div></div></td>
+        <td><strong>${ow}%</strong><div style="margin-top:4px"><div class="weight-bar" style="width:${Math.min(parseFloat(ow),100)*1.5}px;background:${COLORS2[i%COLORS2.length]}"></div></div></td>
         <td class="${pos?'weight-change-pos':'weight-change-neg'}">${pos?'+':''}${diff.toFixed(1)}%</td>
         <td style="font-size:12px;font-weight:500;color:${actionCol}">${action}</td>
       </tr>`;
     }).join('')}</tbody>`;
 
-  // AI explanation
   document.getElementById('aiExplanationText').innerHTML = '<p style="color:var(--text2)">Generating AI analysis...</p>';
   document.getElementById('aiThinking').style.display = 'none';
   document.getElementById('optimiseResult').style.display = 'block';
 
-  const holdingsSummary = appState.holdings.map((h,i)=>
-    `${h.ticker} (${h.sector}): current ${(curW[i]*100).toFixed(1)}% → optimal ${(optWeights[i]*100).toFixed(1)}%`
-  ).join(', ');
+  const summary = appState.holdings.map((h,i) =>
+    `${h.ticker} (${h.sector}): current ${(curW[i]*100).toFixed(1)}% → ${isGMV?'min-var':'optimal'} ${(optWeights[i]*100).toFixed(1)}%`).join(', ');
+
+  const prompt = isGMV
+    ? `Portfolio: ${summary}. Current vol: ${(curM.portVol*100).toFixed(1)}%, min-var vol: ${(optMetrics.portVol*100).toFixed(1)}%, current return: ${(curM.portReturn*100).toFixed(1)}%, min-var return: ${(optMetrics.portReturn*100).toFixed(1)}%. Explain in 3 short paragraphs in plain English: what Global Minimum Variance means, which stocks to increase/reduce and why, and one honest caveat.`
+    : `Portfolio: ${summary}. Current Sharpe: ${curM.sharpe.toFixed(2)}, Optimal Sharpe: ${optMetrics.sharpe.toFixed(2)}, current return ${(curM.portReturn*100).toFixed(1)}%, optimal return ${(optMetrics.portReturn*100).toFixed(1)}%, current vol ${(curM.portVol*100).toFixed(1)}%, optimal vol ${(optMetrics.portVol*100).toFixed(1)}%. Explain in 3 short paragraphs: what Sharpe ratio means, what changes to make and why, one caveat.`;
 
   const aiText = await anthropicChat(
-    'You are a friendly investment advisor explaining portfolio optimisation to a retail investor with no finance background. Plain English, no jargon, short paragraphs, be specific about which stocks to increase or reduce.',
-    `Portfolio: ${holdingsSummary}. Current Sharpe: ${curM.sharpe.toFixed(2)}, Optimised: ${optMetrics.sharpe.toFixed(2)}, current return ${(curM.portReturn*100).toFixed(1)}%, optimised return ${(optMetrics.portReturn*100).toFixed(1)}%, current vol ${(curM.portVol*100).toFixed(1)}%, optimised vol ${(optMetrics.portVol*100).toFixed(1)}%. Explain in 3-4 short paragraphs: what Sharpe ratio means simply, what changes are recommended and why, and one caveat about model-based suggestions.`
-  );
+    'You are a friendly investment advisor. Plain English, no jargon, short paragraphs, specific about which stocks to change.', prompt, 500);
 
-  if (aiText) {
-    document.getElementById('aiExplanationText').innerHTML = aiText.split('\n\n').filter(Boolean).map(p=>`<p>${p}</p>`).join('');
-  } else {
-    document.getElementById('aiExplanationText').innerHTML = `
-      <p>Your current portfolio has a Sharpe Ratio of <strong style="color:var(--amber)">${curM.sharpe.toFixed(2)}</strong>, which means you're earning ${curM.sharpe.toFixed(2)} units of return for every unit of risk you take. The optimised portfolio improves this to <strong style="color:var(--green)">${optMetrics.sharpe.toFixed(2)}</strong>.</p>
-      <p>The optimiser is suggesting you adjust concentrations based on each stock's historical return, volatility, and how they move relative to each other (correlation). Stocks that provide good returns with low correlation to your other holdings get higher weights — they add diversification value.</p>
-      <p>The key changes are: ${appState.holdings.map((h,i)=>{ const d=(optWeights[i]-curW[i])*100; return d>3?`increase ${h.ticker}`:d<-3?`reduce ${h.ticker}`:null; }).filter(Boolean).join(', ') || 'minor rebalancing across all positions'}.</p>
-      <p><em>Important caveat:</em> These recommendations are based on historical return data and simulated correlations. Past performance does not predict future results. Always consider your personal financial situation before making changes.</p>`;
-  }
+  document.getElementById('aiExplanationText').innerHTML = aiText
+    ? aiText.split('\n\n').filter(Boolean).map(p=>`<p>${p}</p>`).join('')
+    : '<p>Review the weight changes above. Gradually rebalance toward the suggested weights. These are model-based recommendations — always consider your own financial situation before making changes.</p>';
+
   btn.disabled = false;
 }
 
-// ════════════════════════════════════════
 // DAILY QUIZ
 // ════════════════════════════════════════
 const QUESTION_BANK = [
@@ -3541,15 +3719,9 @@ function showToast(msg) {
 // ════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  appState.holdings = [
-    {ticker:'AAPL', name:'Apple Inc.',         sector:'Technology', market:'US (NYSE/NASDAQ)', buy:175.20, qty:15, currentPrice:213.50},
-    {ticker:'MSFT', name:'Microsoft Corp.',    sector:'Technology', market:'US (NYSE/NASDAQ)', buy:388.00, qty:8,  currentPrice:417.20},
-    {ticker:'RELIANCE',name:'Reliance Industries',sector:'Energy',  market:'India (NSE/BSE)', buy:2680,   qty:20, currentPrice:2920},
-    {ticker:'TCS',  name:'Tata Consultancy',   sector:'Technology', market:'India (NSE/BSE)', buy:3850,   qty:10, currentPrice:4110},
-    {ticker:'JPM',  name:'JPMorgan Chase',     sector:'Finance',    market:'US (NYSE/NASDAQ)', buy:215.40,qty:12, currentPrice:230.80},
-  ];
   renderHoldingsTable();
   renderAlerts();
+  renderHoldingSuggestions();
 });
 </script>
 </body>
