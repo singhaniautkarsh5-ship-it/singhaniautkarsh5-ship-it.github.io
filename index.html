@@ -1133,7 +1133,20 @@ let appState = {
 // SUPABASE — Auth + Data Sync
 // ════════════════════════════════════════
 const { createClient } = supabase;
-const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    fetch: (url, options = {}) => {
+      // Remove signal to avoid AbortSignal cloning error on GitHub Pages
+      const { signal, ...safeOptions } = options;
+      return fetch(url, safeOptions);
+    }
+  }
+});
 let currentUser = null;
 
 // ── Auth UI ───────────────────────────────────────────────────
