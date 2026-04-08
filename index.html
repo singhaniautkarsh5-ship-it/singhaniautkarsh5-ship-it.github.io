@@ -1012,8 +1012,7 @@
 // ════════════════════════════════════════
 const CONFIG = {
   TD_KEY:         'be5cb92f2c744ed98fd46f787a62088d',
-  MARKETAUX_KEY:  'PASTE_YOUR_MARKETAUX_KEY_HERE',  // get free key at marketaux.com
-  ANTHROPIC_KEY:  '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',
+  MARKETAUX_KEY:  'PASTE_YOUR_MARKETAUX_KEY_HERE',
   PROXY_URL:      'https://finwise-proxy.onrender.com',
   SUPABASE_URL:   'https://mbjfkvuyggsmaaczsjlf.supabase.co',
   SUPABASE_KEY:   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iamZrdnV5Z2dzbWFhY3pzamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDExMTYsImV4cCI6MjA5MDcxNzExNn0.mPFwA3ppkdM5Qsn9nlFmuCQjJt--1uL_bURRSjTKZQ0',
@@ -1195,7 +1194,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
     currentUser = session.user;
     setUserNav(currentUser);
     hideAuthScreen();
-    showToast(`✓ Welcome back, ${currentUser.email.split('@')[0]}!`);
+    const name = currentUser.email.split('@')[0];
+    if (event === 'SIGNED_UP' || event === 'USER_UPDATED') {
+      showToast(`✓ Email verified! Welcome to FinWise, ${name}!`);
+    } else {
+      showToast(`✓ Welcome back, ${name}!`);
+    }
     await dbLoadAll();
     if (appState.holdings.length) {
       showScreen('screen-dashboard');
@@ -1208,10 +1212,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 // Check for existing session on load
+// Also handles email confirmation redirect (Supabase puts tokens in URL hash)
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
-    // No session — show landing normally, Sign In button visible
     document.getElementById('navGetStarted').style.display = 'inline-block';
   }
 })();
@@ -1385,13 +1389,18 @@ function stopRealtimeFeed() {
 
 async function anthropicChat(system, userMsg, maxTokens=900) {
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'x-api-key': CONFIG.ANTHROPIC_KEY, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, system, messages:[{role:'user',content:userMsg}] })
+    const r = await fetch(`${PROXY}/ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: userMsg }],
+      }),
     });
     const d = await r.json();
-    return d.content?.map(c=>c.text||'').join('') || '';
+    return d.content?.map(c => c.text || '').join('') || '';
   } catch(e) { console.warn('Anthropic error:', e); return ''; }
 }
 
