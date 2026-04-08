@@ -1096,6 +1096,22 @@ const CONFIG = {
 };
 
 
+// STATE
+// ════════════════════════════════════════
+let appState = {
+  userType: null,
+  holdings: [],
+  ipsAnswers: {},
+  ipsProfile: null,
+  currentScreen: 'screen-onboarding',
+  liveNews: [],
+  priceCache: {},
+  companyCache: {},
+  watchlist: JSON.parse(localStorage.getItem('fw_watchlist')||'[]'),
+  alerts: JSON.parse(localStorage.getItem('fw_alerts')||'[]'),
+};
+
+// ════════════════════════════════════════
 // ════════════════════════════════════════
 // SUPABASE — Auth + Data Sync
 // ════════════════════════════════════════
@@ -1313,22 +1329,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 // Session restored in DOMContentLoaded below
-
-// ════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════
-let appState = {
-  userType: null,
-  holdings: [],
-  ipsAnswers: {},
-  ipsProfile: null,
-  currentScreen: 'screen-onboarding',
-  liveNews: [],
-  priceCache: {},
-  companyCache: {},
-  watchlist: JSON.parse(localStorage.getItem('fw_watchlist')||'[]'),
-  alerts: JSON.parse(localStorage.getItem('fw_alerts')||'[]'),
-};
 
 // ════════════════════════════════════════
 // API — via finwise-proxy.onrender.com
