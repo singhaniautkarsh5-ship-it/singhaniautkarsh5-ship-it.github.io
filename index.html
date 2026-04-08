@@ -1195,16 +1195,28 @@ sb.auth.onAuthStateChange(async (event, session) => {
     setUserNav(currentUser);
     hideAuthScreen();
     const name = currentUser.email.split('@')[0];
-    if (event === 'SIGNED_UP' || event === 'USER_UPDATED') {
-      showToast(`✓ Email verified! Welcome to FinWise, ${name}!`);
-    } else {
-      showToast(`✓ Welcome back, ${name}!`);
-    }
+
     await dbLoadAll();
+
     if (appState.holdings.length) {
+      // Returning user with portfolio → go straight to dashboard
+      showToast(`✓ Welcome back, ${name}!`);
       showScreen('screen-dashboard');
     } else {
-      showScreen('screen-onboarding');
+      // New user or user with no holdings → show onboarding flow
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        showToast(`✓ Welcome to FinWise, ${name}! Let's get started.`);
+      }
+      // Show onboarding with correct nav state
+      document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+      document.getElementById('screen-onboarding').style.display = 'block';
+      document.getElementById('screen-onboarding').classList.add('active');
+      document.getElementById('navTabs').style.display = 'none';
+      document.getElementById('navHoldings').style.display = 'none';
+      document.getElementById('navGetStarted').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'inline-flex';
+      document.getElementById('indicesStrip').style.display = 'none';
+      appState.currentScreen = 'screen-onboarding';
     }
   } else {
     currentUser = null;
