@@ -576,7 +576,7 @@
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- NAV -->
 <nav>
@@ -1132,7 +1132,8 @@ let appState = {
 // ════════════════════════════════════════
 // SUPABASE — Auth + Data Sync
 // ════════════════════════════════════════
-const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+const { createClient } = supabase;
+const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 let currentUser = null;
 
 // ── Auth UI ───────────────────────────────────────────────────
