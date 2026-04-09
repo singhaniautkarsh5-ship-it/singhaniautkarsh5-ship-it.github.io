@@ -2081,42 +2081,55 @@ async function selectHoldingStock(ticker, name, exchange, fullExchange) {
   document.getElementById('hSearchSugg').style.display = 'none';
   document.getElementById('hSearch').value = name;
 
-  // Show loading state in selected panel
+  // Show loading state
   document.getElementById('hSelected').style.display = 'block';
   document.getElementById('hSelName').textContent = name;
-  document.getElementById('hSelMeta').textContent = `${ticker} · ${exchange} · Fetching live price...`;
+  document.getElementById('hSelMeta').textContent = `${ticker} · ${exchange} · Fetching price...`;
   document.getElementById('hSelPrice').textContent = '—';
   document.getElementById('hSelLogo').textContent = ticker.slice(0,2);
   document.getElementById('hSelChange').textContent = '';
 
-  // Fetch live quote — FMP with Finnhub fallback
+  // Set stock immediately so user can add even if price fetch fails
+  hSelectedStock = {
+    ticker,
+    name,
+    sector: '',
+    market: exchange,
+    exchange: fullExchange || exchange,
+    price: 0,
+    change: 0,
+  };
+
+  // Fetch live quote — non-blocking, update if it comes back
   const q = await getQuote(ticker) || {};
   const price = q.price || 0;
   const change = q.changesPercentage || 0;
   const pos = change >= 0;
 
-  hSelectedStock = {
-    ticker,
-    name: q.name || name,
-    sector: q.sector || '',
-    market: exchange,
-    exchange: fullExchange || exchange,
-    price,
-    change,
-  };
+  // Update hSelectedStock with real data if available
+  hSelectedStock.name   = q.name   || name;
+  hSelectedStock.sector = q.sector || '';
+  hSelectedStock.price  = price;
+  hSelectedStock.change = change;
 
-  // Autofill buy price with current price as a helpful default
-  if (price) document.getElementById('hBuy').value = price.toFixed(2);
+  if (price) {
+    document.getElementById('hBuy').value = price.toFixed(2);
+  } else {
+    document.getElementById('hSelMeta').textContent = `${ticker} · ${exchange} · Price unavailable — enter manually`;
+  }
   document.getElementById('hQty').value = '';
   document.getElementById('hQty').focus();
 
-  // Update selected card
   document.getElementById('hSelName').textContent = hSelectedStock.name;
-  document.getElementById('hSelMeta').textContent = `${ticker} · ${exchange}${hSelectedStock.sector ? ' · '+hSelectedStock.sector : ''}`;
-  document.getElementById('hSelPrice').textContent = price ? price.toLocaleString(undefined,{maximumFractionDigits:2}) : 'N/A';
+  document.getElementById('hSelMeta').textContent = price
+    ? `${ticker} · ${exchange}${hSelectedStock.sector ? ' · '+hSelectedStock.sector : ''}`
+    : `${ticker} · ${exchange} · Enter buy price manually`;
+  document.getElementById('hSelPrice').textContent = price
+    ? price.toLocaleString(undefined, {maximumFractionDigits:2})
+    : 'Enter manually';
   document.getElementById('hSelChange').innerHTML = price
     ? `<span style="color:${pos?'var(--green)':'var(--red)'}">${pos?'▲':'▼'} ${Math.abs(change).toFixed(2)}% today</span>`
-    : '';
+    : `<span style="color:var(--text3);font-size:11px">Proxy waking up — enter price manually</span>`;
   document.getElementById('hSelLogo').textContent = ticker.slice(0,2);
   document.getElementById('hSelLogo').style.background = stringToColor(ticker);
 }
@@ -3791,27 +3804,7 @@ let activeCurrency = 'USD';
 const FX_RATES = { USD:1, INR:83.5, GBP:0.79 }; // fallback rates
 const FX_SYMBOLS = { USD:'$', INR:'₹', GBP:'£' };
 
-async function loadFxRates() {
-  try {
-    // Try FMP forex pairs first
-    const [inr, gbp] = await Promise.all([
-      getQuote('USDINR=X'),
-      getQuote('USDGBP=X'),
-    ]);
-    if (inr?.price) FX_RATES.INR = inr.price;
-    if (gbp?.price) FX_RATES.GBP = gbp.price;
-  } catch(e) {
-    // Fallback: try Finnhub forex
-    try {
-      const [inr, gbp] = await Promise.all([
-        finnhubGet('quote', { symbol:'OANDA:USD_INR' }),
-        finnhubGet('quote', { symbol:'OANDA:USD_GBP' }),
-      ]);
-      if (inr?.c) FX_RATES.INR = inr.c;
-      if (gbp?.c) FX_RATES.GBP = gbp.c;
-    } catch(e2) {} // fallback rates already set
-  }
-}
+
 
 function setCurrency(code, btn) {
   activeCurrency = code;
