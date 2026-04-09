@@ -757,7 +757,10 @@
         </div></td></tr>
       </tbody>
     </table>
-    <button class="btn-continue" onclick="finishHoldings()">Go to My Dashboard →</button>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
+      <button class="btn-continue" style="flex:1;min-width:200px" onclick="finishHoldings()">Go to My Dashboard →</button>
+      <button id="savePortfolioBtn" class="btn-sm btn-primary" style="padding:12px 24px;font-size:14px;font-weight:600" onclick="savePortfolioToSupabase()">💾 Save Portfolio</button>
+    </div>
 
     <!-- Popular stock suggestions -->
     <div id="holdingSuggestionsWrap" style="margin-top:2.5rem">
@@ -2149,25 +2152,13 @@ async function addHolding() {
   appState.holdings.push(newHolding);
   appState.priceCache[ticker] = { price: currentPrice, change: hSelectedStock.change, name, sector };
 
-  // Save to Supabase — await so we know it worked
-  if (currentUser) {
-    await dbSaveHolding(newHolding);
-    if (!newHolding.dbId) {
-      console.warn('dbSaveHolding did not return an id — may not have saved');
-    }
-  } else {
-    showToast('⚠ Not signed in — holding added locally only');
-  }
-
   renderHoldingsTable();
   clearHoldingSelection();
-  showToast(`✓ ${name} added to your portfolio`);
+  showToast(`✓ ${name} added — click Save Portfolio when done`);
 }
 
 function removeHolding(idx) {
-  const holding = appState.holdings[idx];
   appState.holdings.splice(idx, 1);
-  dbDeleteHolding(holding);
   renderHoldingsTable();
 }
 
@@ -2264,18 +2255,50 @@ async function selectSuggestion(ticker, name, sector) {
   document.getElementById('hSelected').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ── Save portfolio to Supabase (manual, called by Save button) ──
+async function savePortfolioToSupabase() {
+  if (!currentUser) { showToast('Sign in to save your portfolio.'); return; }
+  if (!appState.holdings.length) { showToast('Add at least one holding first.'); return; }
+
+  const btn = document.getElementById('savePortfolioBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  showToast('Saving portfolio…');
+
+  try {
+    const uid = currentUser.id;
+    // Delete all existing holdings for this user then re-insert
+    const { error: delErr } = await sb.from('portfolios').delete().eq('user_id', uid);
+    if (delErr) throw new Error('Delete failed: ' + delErr.message);
+
+    const rows = appState.holdings.map(h => ({
+      user_id:   uid,
+      ticker:    h.ticker,
+      name:      h.name,
+      sector:    h.sector || '',
+      market:    h.market || '',
+      qty:       h.qty,
+      buy_price: h.buy,
+    }));
+
+    const { data, error: insErr } = await sb.from('portfolios').insert(rows).select();
+    if (insErr) throw new Error('Insert failed: ' + insErr.message);
+
+    // Store dbIds back on holdings
+    if (data) {
+      data.forEach((row, i) => { if (appState.holdings[i]) appState.holdings[i].dbId = row.id; });
+    }
+
+    showToast(`✓ Portfolio saved — ${appState.holdings.length} holdings`);
+  } catch(e) {
+    console.error('savePortfolioToSupabase:', e.message);
+    showToast('Save failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Portfolio'; }
+  }
+}
+
 async function finishHoldings() {
   if (!appState.holdings.length) { showToast('Add at least one holding to continue.'); return; }
-
-  // Safety net: re-save any holdings that didn't get a dbId (e.g. if save failed silently)
-  if (currentUser) {
-    const unsaved = appState.holdings.filter(h => !h.dbId);
-    if (unsaved.length) {
-      showToast('Saving portfolio...');
-      await Promise.all(unsaved.map(h => dbSaveHolding(h)));
-    }
-  }
-
   renderDashboard();
   renderNews();
   showScreen('screen-dashboard');
@@ -3587,7 +3610,7 @@ async function addToWatchlist() {
   const item = { ticker, name: q.name||name||ticker, price: q.price||0, change: q.changesPercentage||0, sector: q.sector||'', addedAt: Date.now() };
   appState.watchlist.push(item);
   localStorage.setItem('fw_watchlist', JSON.stringify(appState.watchlist));
-  dbSaveWatchlistItem(item); // save to Supabase
+  // saved when user clicks Save Portfolio
   document.getElementById('wlTicker').value='';
   document.getElementById('wlName').value='';
   renderWatchlist();
@@ -3598,7 +3621,7 @@ function removeFromWatchlist(ticker) {
   const item = appState.watchlist.find(w => w.ticker === ticker);
   appState.watchlist = appState.watchlist.filter(w=>w.ticker!==ticker);
   localStorage.setItem('fw_watchlist', JSON.stringify(appState.watchlist));
-  if (item) dbDeleteWatchlistItem(item); // remove from Supabase
+  // no Supabase delete needed — full sync on save
   renderWatchlist();
 }
 
@@ -3644,7 +3667,7 @@ function addAlert() {
   const newAlert = { ticker, targetPrice: price, direction: dir, triggered: false, createdAt: Date.now() };
   appState.alerts.push(newAlert);
   localStorage.setItem('fw_alerts', JSON.stringify(appState.alerts));
-  dbSaveAlert(newAlert); // save to Supabase
+  // saved when user clicks Save Portfolio
   document.getElementById('alTicker').value='';
   document.getElementById('alPrice').value='';
   renderAlerts();
@@ -3655,7 +3678,7 @@ function removeAlert(idx) {
   const alert = appState.alerts[idx];
   appState.alerts.splice(idx, 1);
   localStorage.setItem('fw_alerts', JSON.stringify(appState.alerts));
-  dbDeleteAlert(alert); // remove from Supabase
+  // no Supabase delete needed — full sync on save
   renderAlerts();
 }
 
@@ -3682,7 +3705,7 @@ function checkAlerts(holdings) {
     const price = h?.currentPrice || wl?.price || appState.priceCache[a.ticker]?.price;
     if (!price) return;
     const hit = (a.direction==='above' && price >= a.targetPrice) || (a.direction==='below' && price <= a.targetPrice);
-    if (hit) { a.triggered = true; triggered = true; showToast(`🔔 Alert: ${a.ticker} hit ${a.targetPrice}!`); dbUpdateAlertTriggered(a); }
+    if (hit) { a.triggered = true; triggered = true; showToast(`🔔 Alert: ${a.ticker} hit ${a.targetPrice}!`); }
   });
   if (triggered) localStorage.setItem('fw_alerts', JSON.stringify(appState.alerts));
 }
