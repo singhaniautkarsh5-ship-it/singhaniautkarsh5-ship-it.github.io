@@ -1249,6 +1249,9 @@ async function dbLoadAll() {
       sb.from('watchlists').select('*').eq('user_id', uid),
       sb.from('alerts').select('*').eq('user_id', uid),
     ]);
+    console.log('portfolios:', portRes.data?.length, portRes.error?.message);
+    console.log('watchlists:', watchRes.data?.length, watchRes.error?.message);
+    console.log('uid used:', uid);
     if (portRes.error) console.error('portfolios error:', portRes.error.message);
     if (watchRes.error) console.error('watchlists error:', watchRes.error.message);
     if (alertRes.error) console.error('alerts error:', alertRes.error.message);
@@ -4003,7 +4006,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session?.user) {
     try { currentUser = session.user; } catch(e) {}
     try { setUserNav(currentUser); } catch(e) { console.error('setUserNav:', e.message); }
-    try { await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
+
+    let loadOk = false;
+    try { loadOk = await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
+
+    // Visible debug — remove once confirmed working
+    showToast(`Session: ${currentUser.email.split('@')[0]} · Holdings: ${appState.holdings.length} · Load: ${loadOk}`);
 
     if (appState.holdings.length) {
       try { showScreen('screen-dashboard'); } catch(e) {}
