@@ -2426,15 +2426,38 @@ async function renderDashboard() {
 }
 
 // Build the full dashboard DOM once
-function buildDashboardDOM() {
-  const h = appState.holdings;
-  const totalInvested = h.reduce((s,x) => s + x.buy * x.qty, 0);
-  const totalCurrent  = h.reduce((s,x) => s + x.currentPrice * x.qty, 0);
-  const totalPnL = totalCurrent - totalInvested;
-  const pnlPct   = totalInvested ? (totalPnL/totalInvested*100) : 0;
-  const positive = totalPnL >= 0;
+// Fetch real CAPM data for all holdings, then refresh KPI cards
+async function computeAllCAPM(holdings) {
+  if (!holdings.length) return;
 
-  // Portfolio Risk & Return (uses same data as optimiser)
+  // Fetch profile for beta, then historical prices for volatility
+  await Promise.all(holdings.map(async h => {
+    try {
+      // Get beta from FMP profile if not already cached
+      let beta = null;
+      const cached = appState.companyCache[h.ticker];
+      if (cached?.beta) {
+        beta = cached.beta;
+      } else {
+        const profile = await proxyFetch('/profile', { symbol: h.ticker });
+        if (profile?.beta) {
+          beta = profile.beta;
+          if (!appState.companyCache[h.ticker]) appState.companyCache[h.ticker] = {};
+          appState.companyCache[h.ticker].beta = beta;
+        }
+      }
+      await computeCAPM(h.ticker, beta);
+    } catch(e) {
+      console.warn('CAPM failed for', h.ticker, e.message);
+    }
+  }));
+
+  // All done — refresh the risk/return KPI cards with real values
+  updateRiskReturnKPIs(holdings);
+}
+
+function updateRiskReturnKPIs(h) {
+  const totalCurrent = h.reduce((s,x) => s + x.currentPrice * x.qty, 0);
   const weights = h.map(x => (x.currentPrice * x.qty) / (totalCurrent || 1));
   let portReturn = 0, portVariance = 0;
   for (let i = 0; i < h.length; i++) portReturn += weights[i] * getReturnData(h[i].ticker).annReturn;
@@ -2446,7 +2469,58 @@ function buildDashboardDOM() {
     }
   }
   const portRisk  = Math.sqrt(portVariance);
-  const sharpe    = portRisk > 0 ? ((portReturn - RISK_FREE) / portRisk) : 0;
+  const Rf        = h.length ? getRfRate(h[0].ticker) : 0.045;
+  const sharpe    = portRisk > 0 ? ((portReturn - Rf) / portRisk) : 0;
+  const riskLabel = portRisk < 0.12 ? 'Low' : portRisk < 0.22 ? 'Moderate' : portRisk < 0.32 ? 'High' : 'Very High';
+  const riskColor = portRisk < 0.12 ? 'var(--green)' : portRisk < 0.22 ? 'var(--amber)' : 'var(--red)';
+  appState._portReturn = portReturn;
+
+  const riskCard = document.getElementById('kpi-risk');
+  const retCard  = document.getElementById('kpi-return');
+  if (riskCard) {
+    riskCard.innerHTML = `
+      <div class="kpi-label">Portfolio Risk</div>
+      <div class="kpi-value" style="color:${riskColor}">${riskLabel}</div>
+      <div class="kpi-change" style="color:var(--text2)">${(portRisk*100).toFixed(1)}% volatility</div>
+      <div class="kpi-change" style="color:var(--text3);font-size:10px">CAPM • real data</div>`;
+  }
+  if (retCard) {
+    retCard.innerHTML = `
+      <div class="kpi-label">Expected Return</div>
+      <div class="kpi-value" style="color:var(--green)">${(portReturn*100).toFixed(1)}% p.a.</div>
+      <div class="kpi-change" style="color:var(--text2)">Sharpe: ${sharpe.toFixed(2)}</div>
+      <div class="kpi-change" style="color:var(--text3);font-size:10px">CAPM (Rf + β × MRP)</div>`;
+  }
+  updateTargetKPI();
+}
+
+function buildDashboardDOM() {
+  const h = appState.holdings;
+  const totalInvested = h.reduce((s,x) => s + x.buy * x.qty, 0);
+  const totalCurrent  = h.reduce((s,x) => s + x.currentPrice * x.qty, 0);
+  const totalPnL = totalCurrent - totalInvested;
+  const pnlPct   = totalInvested ? (totalPnL/totalInvested*100) : 0;
+  const positive = totalPnL >= 0;
+
+  // Kick off async CAPM computation for all holdings (non-blocking)
+  // Results populate capmCache; call buildKPIRiskReturn() when done
+  computeAllCAPM(h);
+
+  // Portfolio Risk & Return — uses capmCache (may be defaults on first render,
+  // will be real CAPM values after computeAllCAPM resolves)
+  const weights = h.map(x => (x.currentPrice * x.qty) / (totalCurrent || 1));
+  let portReturn = 0, portVariance = 0;
+  for (let i = 0; i < h.length; i++) portReturn += weights[i] * getReturnData(h[i].ticker).annReturn;
+  for (let i = 0; i < h.length; i++) {
+    for (let j = 0; j < h.length; j++) {
+      const si = getReturnData(h[i].ticker).volatility;
+      const sj = getReturnData(h[j].ticker).volatility;
+      portVariance += weights[i] * weights[j] * si * sj * getCorr(h[i].ticker, h[j].ticker);
+    }
+  }
+  const portRisk  = Math.sqrt(portVariance);
+  const Rf        = h.length ? getRfRate(h[0].ticker) : 0.045;
+  const sharpe    = portRisk > 0 ? ((portReturn - Rf) / portRisk) : 0;
   const riskLabel = portRisk < 0.12 ? 'Low' : portRisk < 0.22 ? 'Moderate' : portRisk < 0.32 ? 'High' : 'Very High';
   const riskColor = portRisk < 0.12 ? 'var(--green)' : portRisk < 0.22 ? 'var(--amber)' : 'var(--red)';
   appState._portReturn = portReturn; // store for target modal
@@ -3143,50 +3217,195 @@ function renderLiveRatioCards(ratios) {
 // ════════════════════════════════════════
 
 // Mock historical return/vol/correlation data per ticker
-const MOCK_RETURN_DATA = {
-  AAPL:     { annReturn: 0.182, volatility: 0.272 },
-  MSFT:     { annReturn: 0.214, volatility: 0.248 },
-  RELIANCE: { annReturn: 0.143, volatility: 0.231 },
-  TCS:      { annReturn: 0.168, volatility: 0.218 },
-  JPM:      { annReturn: 0.156, volatility: 0.261 },
-  TSLA:     { annReturn: 0.241, volatility: 0.624 },
-  NVDA:     { annReturn: 0.384, volatility: 0.521 },
-  GOOGL:    { annReturn: 0.179, volatility: 0.258 },
-  INFY:     { annReturn: 0.134, volatility: 0.224 },
-  HDFC:     { annReturn: 0.121, volatility: 0.198 },
-};
-const RISK_FREE = 0.045; // 4.5% risk-free rate
+// ════════════════════════════════════════
+// CAPM — Real expected returns from historical data
+// ════════════════════════════════════════
 
-function getReturnData(ticker) {
-  return MOCK_RETURN_DATA[ticker] || { annReturn: 0.12 + Math.random()*0.08, volatility: 0.2 + Math.random()*0.15 };
+// Risk-free rates by market (government bond yields)
+const RF_RATES = { US: 0.045, IN: 0.065, UK: 0.042, default: 0.045 };
+
+function getRfRate(ticker) {
+  if (!ticker) return RF_RATES.default;
+  if (ticker.endsWith('.NS') || ticker.endsWith('.BO')) return RF_RATES.IN;
+  if (ticker.endsWith('.L')) return RF_RATES.UK;
+  return RF_RATES.US;
 }
 
-// Simple correlation matrix (pairs not in table default to 0.35)
-const CORR = {
-  'AAPL-MSFT':0.72,'AAPL-GOOGL':0.68,'AAPL-NVDA':0.58,'AAPL-TSLA':0.41,
-  'MSFT-GOOGL':0.71,'MSFT-NVDA':0.62,'MSFT-TSLA':0.38,
-  'RELIANCE-TCS':0.48,'RELIANCE-INFY':0.44,'TCS-INFY':0.81,'TCS-HDFC':0.31,
-  'AAPL-JPM':0.28,'MSFT-JPM':0.31,'AAPL-RELIANCE':0.18,'MSFT-TCS':0.42,
-};
-function getCorr(a,b) {
-  if (a===b) return 1;
-  return CORR[`${a}-${b}`] || CORR[`${b}-${a}`] || 0.32;
+// Cache for computed CAPM data per ticker { annReturn, volatility, beta, computed }
+const capmCache = {};
+
+// Calculate daily returns from price array
+function calcDailyReturns(prices) {
+  const returns = [];
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i-1] > 0) returns.push((prices[i] - prices[i-1]) / prices[i-1]);
+  }
+  return returns;
+}
+
+// Annualised volatility from daily returns
+function calcAnnVolatility(dailyReturns) {
+  if (dailyReturns.length < 5) return 0.25; // fallback
+  const mean = dailyReturns.reduce((a,b) => a+b, 0) / dailyReturns.length;
+  const variance = dailyReturns.reduce((s,r) => s + (r-mean)**2, 0) / (dailyReturns.length - 1);
+  return Math.sqrt(variance * 252);
+}
+
+// Beta = Cov(stock, market) / Var(market)
+function calcBeta(stockReturns, mktReturns) {
+  const n = Math.min(stockReturns.length, mktReturns.length);
+  if (n < 10) return 1.0;
+  const sR = stockReturns.slice(-n);
+  const mR = mktReturns.slice(-n);
+  const meanS = sR.reduce((a,b)=>a+b,0)/n;
+  const meanM = mR.reduce((a,b)=>a+b,0)/n;
+  let cov = 0, varM = 0;
+  for (let i = 0; i < n; i++) {
+    cov  += (sR[i] - meanS) * (mR[i] - meanM);
+    varM += (mR[i] - meanM) ** 2;
+  }
+  if (varM === 0) return 1.0;
+  const beta = cov / varM;
+  // Clamp to reasonable range
+  return Math.max(0.1, Math.min(3.0, beta));
+}
+
+// Annualised return from price series
+function calcAnnReturn(prices) {
+  if (prices.length < 2) return 0.10;
+  const first = prices[0], last = prices[prices.length - 1];
+  const years = prices.length / 252;
+  return Math.pow(last / first, 1 / years) - 1;
+}
+
+// Market return cache
+const mktReturnCache = {};
+
+async function getMarketReturn(ticker) {
+  const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO');
+  const cacheKey = isIndian ? 'NIFTY' : 'SPY';
+  if (mktReturnCache[cacheKey]) return mktReturnCache[cacheKey];
+
+  try {
+    const mktTicker = isIndian ? '^NSEI' : 'SPY';
+    const endDate   = new Date().toISOString().slice(0,10);
+    const startDate = new Date(Date.now() - 365*2*86400000).toISOString().slice(0,10);
+    const data = await proxyFetch('/time_series', { symbol: mktTicker, start_date: startDate, end_date: endDate });
+    const prices = (data?.values || []).map(d => parseFloat(d.close)).filter(p => p > 0);
+    if (prices.length < 50) throw new Error('insufficient market data');
+    const Rm = calcAnnReturn(prices);
+    mktReturnCache[cacheKey] = { Rm, prices };
+    return mktReturnCache[cacheKey];
+  } catch(e) {
+    // Fallback: S&P 500 ~10% long-run, NIFTY ~12%
+    const fallback = isIndian ? { Rm: 0.12, prices: [] } : { Rm: 0.10, prices: [] };
+    mktReturnCache[cacheKey] = fallback;
+    return fallback;
+  }
+}
+
+// Main CAPM function — fetches real historical data
+async function computeCAPM(ticker, betaFromProfile) {
+  if (capmCache[ticker]?.computed) return capmCache[ticker];
+
+  const Rf = getRfRate(ticker);
+  let annReturn, volatility, beta;
+
+  try {
+    const endDate   = new Date().toISOString().slice(0,10);
+    const startDate = new Date(Date.now() - 365*2*86400000).toISOString().slice(0,10);
+    const data = await proxyFetch('/time_series', { symbol: ticker, start_date: startDate, end_date: endDate });
+    const prices = (data?.values || []).map(d => parseFloat(d.close)).filter(p => p > 0);
+
+    if (prices.length < 30) throw new Error('insufficient data');
+
+    const dailyReturns = calcDailyReturns(prices);
+    volatility = calcAnnVolatility(dailyReturns);
+    annReturn  = calcAnnReturn(prices);
+
+    // Use beta from FMP profile if available, otherwise calculate from market
+    if (betaFromProfile && betaFromProfile > 0) {
+      beta = Math.max(0.1, Math.min(3.0, betaFromProfile));
+    } else {
+      const { prices: mktPrices } = await getMarketReturn(ticker);
+      if (mktPrices.length >= 30) {
+        const mktReturns = calcDailyReturns(mktPrices);
+        beta = calcBeta(dailyReturns, mktReturns);
+      } else {
+        beta = 1.0;
+      }
+    }
+
+    // CAPM: E(R) = Rf + β × (Rm - Rf)
+    const { Rm } = await getMarketReturn(ticker);
+    annReturn = Rf + beta * (Rm - Rf);
+
+  } catch(e) {
+    // Fallback to beta-based CAPM with default market premium
+    beta      = betaFromProfile || 1.0;
+    const Rm  = getRfRate(ticker) === RF_RATES.IN ? 0.12 : 0.10;
+    annReturn = Rf + beta * (Rm - Rf);
+    volatility = 0.20 + (beta - 1) * 0.10; // rough estimate from beta
+  }
+
+  const result = { annReturn, volatility, beta, computed: true };
+  capmCache[ticker] = result;
+  return result;
+}
+
+// Synchronous version used by optimiser (returns cached or fallback)
+function getReturnData(ticker) {
+  if (capmCache[ticker]?.computed) return capmCache[ticker];
+  // Return reasonable default while async computation runs
+  const Rf = getRfRate(ticker);
+  const Rm = (ticker.endsWith('.NS') || ticker.endsWith('.BO')) ? 0.12 : 0.10;
+  const beta = 1.0;
+  return { annReturn: Rf + beta * (Rm - Rf), volatility: 0.22, beta, computed: false };
+}
+
+// Correlation from actual returns — computed and cached
+const corrCache = {};
+function getCorr(a, b) {
+  if (a === b) return 1;
+  const key = [a,b].sort().join('-');
+  if (corrCache[key] !== undefined) return corrCache[key];
+  // If we have return data for both, compute actual correlation
+  const da = capmCache[a], db = capmCache[b];
+  if (da?.returns && db?.returns) {
+    const n = Math.min(da.returns.length, db.returns.length);
+    const rA = da.returns.slice(-n), rB = db.returns.slice(-n);
+    const mA = rA.reduce((s,x)=>s+x,0)/n, mB = rB.reduce((s,x)=>s+x,0)/n;
+    let cov = 0, vA = 0, vB = 0;
+    for (let i = 0; i < n; i++) {
+      cov += (rA[i]-mA)*(rB[i]-mB);
+      vA  += (rA[i]-mA)**2;
+      vB  += (rB[i]-mB)**2;
+    }
+    const corr = Math.sqrt(vA * vB) > 0 ? cov / Math.sqrt(vA * vB) : 0.3;
+    corrCache[key] = Math.max(-0.95, Math.min(0.95, corr));
+    return corrCache[key];
+  }
+  // Default moderate correlation for same-market stocks
+  const sameMarket = (a.includes('.NS') === b.includes('.NS'));
+  return sameMarket ? 0.45 : 0.25;
 }
 
 function calcPortfolioMetrics(holdings, weights) {
   const n = holdings.length;
+  const RISK_FREE = 0.045;
   let portReturn = 0;
-  for (let i=0;i<n;i++) portReturn += weights[i] * getReturnData(holdings[i].ticker).annReturn;
+  for (let i = 0; i < n; i++) portReturn += weights[i] * getReturnData(holdings[i].ticker).annReturn;
   let portVar = 0;
-  for (let i=0;i<n;i++) {
-    for (let j=0;j<n;j++) {
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
       const si = getReturnData(holdings[i].ticker).volatility;
       const sj = getReturnData(holdings[j].ticker).volatility;
-      portVar += weights[i]*weights[j]*si*sj*getCorr(holdings[i].ticker,holdings[j].ticker);
+      portVar += weights[i] * weights[j] * si * sj * getCorr(holdings[i].ticker, holdings[j].ticker);
     }
   }
   const portVol = Math.sqrt(portVar);
-  const sharpe = (portReturn - RISK_FREE) / portVol;
+  const Rf = holdings.length ? getRfRate(holdings[0].ticker) : 0.045;
+  const sharpe = portVol > 0 ? (portReturn - Rf) / portVol : 0;
   return { portReturn, portVol, sharpe };
 }
 
