@@ -1141,14 +1141,9 @@ const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storage: window.localStorage,
+    storageKey: 'finwise-auth',
   },
-  global: {
-    fetch: (url, options = {}) => {
-      // Remove signal to avoid AbortSignal cloning error on GitHub Pages
-      const { signal, ...safeOptions } = options;
-      return fetch(url, safeOptions);
-    }
-  }
 });
 let currentUser = null;
 
@@ -4010,27 +4005,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     let loadOk = false;
     try { loadOk = await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
 
-    // Visible debug — remove once confirmed working
-    showToast(`Session: ${currentUser.email.split('@')[0]} · Holdings: ${appState.holdings.length} · Load: ${loadOk}`);
+    console.log('Session restored:', currentUser.email, '| Holdings:', appState.holdings.length, '| Load:', loadOk);
 
     if (appState.holdings.length) {
-      try { showScreen('screen-dashboard'); } catch(e) {}
-      setTimeout(() => { try { renderDashboard(); } catch(e) { console.error('renderDashboard:', e.message); } }, 100);
-      setTimeout(() => { try { renderNews(); } catch(e) {} }, 200);
+      showScreen('screen-dashboard');
+      setTimeout(() => renderDashboard(), 100);
+      setTimeout(() => renderNews(), 200);
       const existing = localStorage.getItem('fw_target_return');
       if (!existing) setTimeout(showTargetReturnModal, 1400);
     } else {
-      // Logged in but no holdings — show onboarding
-      try {
-        document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
-        document.getElementById('screen-onboarding').style.display = 'block';
-        document.getElementById('screen-onboarding').classList.add('active');
-        document.getElementById('navTabs').style.display = 'none';
-        document.getElementById('navHoldings').style.display = 'none';
-        document.getElementById('navGetStarted').style.display = 'none';
-        document.getElementById('userMenu').style.display = 'inline-flex';
-        document.getElementById('indicesStrip').style.display = 'none';
-      } catch(e) { console.error('onboarding nav:', e.message); }
+      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+      document.getElementById('screen-onboarding').style.display = 'block';
+      document.getElementById('screen-onboarding').classList.add('active');
+      document.getElementById('navTabs').style.display = 'none';
+      document.getElementById('navHoldings').style.display = 'none';
+      document.getElementById('navGetStarted').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'inline-flex';
+      document.getElementById('indicesStrip').style.display = 'none';
     }
   } else {
     document.getElementById('navGetStarted').style.display = 'inline-block';
