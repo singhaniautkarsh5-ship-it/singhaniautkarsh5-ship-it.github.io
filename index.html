@@ -342,12 +342,12 @@
   .ticker-item .ti-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
   /* ── INDICES GRID — compact clickable pills ── */
-  .indices-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:2rem; }
+  .indices-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:2rem; }
   .index-pill { background:var(--surface); padding:.6rem 1rem; cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .index-pill:hover { background:var(--bg3); }
-  .index-pill-left { display:flex; align-items:center; gap:7px; min-width:0; }
+  .index-pill-left { display:flex; align-items:center; gap:7px; min-width:0; flex-shrink:1; }
   .index-pill-flag { font-size:13px; flex-shrink:0; }
-  .index-pill-name { font-size:12px; font-weight:500; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .index-pill-name { font-size:12px; font-weight:500; color:var(--text2); white-space:nowrap; }
   .index-pill-right { display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; }
   .index-pill-val { font-family:var(--font-head); font-size:13px; font-weight:700; white-space:nowrap; }
   .index-pill-chg { font-size:11px; font-weight:500; white-space:nowrap; }
