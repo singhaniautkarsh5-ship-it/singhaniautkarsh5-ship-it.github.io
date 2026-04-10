@@ -333,10 +333,10 @@
   }
   .ticker-item {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 0 20px; font-size: 12px; border-right: 1px solid var(--border);
-    height: 36px; flex-shrink: 0;
+    padding: 0 24px; font-size: 12px; border-right: 1px solid var(--border);
+    height: 36px; flex-shrink: 0; white-space: nowrap;
   }
-  .ticker-item .ti-name { color: var(--text2); font-weight: 500; }
+  .ticker-item .ti-name { color: var(--text2); font-weight: 500; white-space: nowrap; }
   .ticker-item .ti-val { font-family: var(--font-head); font-weight: 600; font-size: 12px; }
   .ticker-item .ti-chg { font-size: 11px; font-weight: 500; }
   .ticker-item .ti-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
@@ -1541,7 +1541,7 @@ async function anthropicChat(system, userMsg, maxTokens=900) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: maxTokens,
         system,
         messages: [{ role: 'user', content: userMsg }],
@@ -2761,6 +2761,10 @@ function buildNewsCard(article, idx, tab) {
   const snippet = (article.snippet || article.description || '').slice(0, 180);
   const safeUrl = (article.url || '#').replace(/'/g, '%27');
 
+  // Build a clean 1-sentence summary from the snippet
+  const summaryText = (article.snippet || article.description || '').slice(0, 160).trim();
+  const summary = summaryText ? summaryText + (summaryText.length >= 160 ? '…' : '') : '';
+
   return `<div class="news-card" id="${id}">
     <div class="news-card-main">
       <div class="news-card-meta">
@@ -2768,15 +2772,16 @@ function buildNewsCard(article, idx, tab) {
         <span class="news-time">${ago}</span>
         <span class="news-sentiment-dot" style="background:${sentColor}"></span>
         <span style="font-size:11px;color:${sentColor};font-weight:500">${sentLabel}</span>
+        ${tickers.slice(0,3).map(t => `<span class="news-ticker-tag">${t}</span>`).join('')}
       </div>
-      <div class="news-title" onclick="window.open('${safeUrl}','_blank')">${article.title || ''}</div>
-      ${snippet ? `<div class="news-snippet">${snippet}${(article.snippet||'').length > 180 ? '…' : ''}</div>` : ''}
-      <div class="news-card-footer">
-        <div class="news-tickers">
-          ${tickers.map(t => `<span class="news-ticker-tag">${t}</span>`).join('')}
-        </div>
+      <div class="news-title" style="cursor:pointer" onclick="window.open('${safeUrl}','_blank')" title="Click to read full article">${article.title || ''}</div>
+      ${summary ? `<div class="news-snippet" style="margin-top:6px;font-size:13px;color:var(--text2);line-height:1.5">${summary}</div>` : ''}
+      <div class="news-card-footer" style="margin-top:10px">
+        <a href="${safeUrl}" target="_blank" rel="noopener" style="font-size:12px;color:var(--text3);text-decoration:none;display:flex;align-items:center;gap:4px">
+          Read full article ↗
+        </a>
         <button class="btn-analyse" id="btn-${id}" onclick="analyseArticle('${id}',this)">
-          <span>✦ Analyse</span>
+          <span>✦ AI Analyse</span>
         </button>
       </div>
     </div>
@@ -2815,28 +2820,26 @@ async function analyseArticle(cardId, btn) {
       return `${h.ticker} (${h.name}, currently ${pnl > 0 ? '+' : ''}${pnl}% P&L)`;
     }).join(', ');
 
-  const prompt = `You are explaining a financial news article to a retail investor with zero finance knowledge. Use plain English only — no jargon, no acronyms without explanation.
+  const prompt = 'News headline: "' + title + '"\
+'
+    + (snippet ? 'Summary: "' + snippet + '"\
+' : '')
+    + (relatedHoldings ? 'Investor holds: ' + relatedHoldings + '\
+' : 'No related holdings.\
+')
+    + '\nWrite exactly 3 labelled paragraphs:\n\
+'
+    + '"What happened:" — Plain English explanation. No jargon.\n\
+'
+    + '"Why it matters:" — Specific business or market impact.\n\
+'
+    + '"For your portfolio:" — ' + (relatedHoldings ? 'Good or bad for their specific holdings? Name the tickers and be direct.' : 'General impact for investors in this sector.') + '\n\
+'
+    + '\nThen write exactly one of:\nVerdict: GOOD NEWS\nVerdict: BAD NEWS\nVerdict: MIXED\n\
+'
+    + 'Under 180 words total.';
 
-Article: "${title}"
-${snippet ? `Detail: "${snippet}"` : ''}
-${relatedHoldings ? `This investor holds: ${relatedHoldings}` : ''}
 
-Write exactly 3 short paragraphs with these labels:
-
-"What happened:" — What occurred in plain English? Explain it like talking to a friend.
-
-"Why it matters:" — What is the business or market impact? Keep it concrete.
-
-"For your portfolio:" — ${relatedHoldings
-  ? `Directly say whether this is good or bad for their holding and why. Be specific.`
-  : `Would this generally be good or bad for investors in this space?`}
-
-Then on a new line write exactly one of:
-Verdict: GOOD NEWS
-Verdict: BAD NEWS  
-Verdict: MIXED
-
-Keep total under 200 words.`;
 
   const text = await anthropicChat(
     'You are a financial analyst writing for complete beginners. Be direct, specific, and use simple language.',
