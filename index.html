@@ -1109,7 +1109,7 @@ window.addEventListener('unhandledrejection', function(e) {
 });
 const CONFIG = {
   TD_KEY:         'be5cb92f2c744ed98fd46f787a62088d',
-  MARKETAUX_KEY:  'PASTE_YOUR_MARKETAUX_KEY_HERE',
+  MARKETAUX_KEY:  '',  // key is server-side in Render env vars
   PROXY_URL:      'https://finwise-proxy.onrender.com',
   SUPABASE_URL:   'https://mbjfkvuyggsmaaczsjlf.supabase.co',
   SUPABASE_KEY:   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iamZrdnV5Z2dzbWFhY3pzamxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDExMTYsImV4cCI6MjA5MDcxNzExNn0.mPFwA3ppkdM5Qsn9nlFmuCQjJt--1uL_bURRSjTKZQ0',
@@ -2663,9 +2663,10 @@ async function fetchNewsFromProxy(type, params = {}) {
   try {
     const r = await fetch(url.toString());
     const d = await r.json();
-    if (d.error) { console.warn('News API:', d.error); return []; }
+    if (d.error) { console.warn('News API error:', d.error); return []; }
+    console.log(`News [${type}]: ${d?.data?.length || 0} articles`);
     return d?.data || [];
-  } catch(e) { console.warn('News fetch failed:', e); return []; }
+  } catch(e) { console.warn('News fetch failed:', e.message); return []; }
 }
 
 async function renderNews() {
@@ -2720,7 +2721,9 @@ async function loadNewsTab(tab) {
 
   } else if (tab === 'market') {
     const countries = [...new Set(holdings.map(holdingCountry))];
-    articles = await fetchNewsFromProxy('market', { country: countries[0] || 'us' });
+    const country = countries[0] || 'us';
+    // Use general market news without filter_entities — broader results
+    articles = await fetchNewsFromProxy('market', { country, broad: '1' });
   }
 
   const time = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
@@ -2728,11 +2731,11 @@ async function loadNewsTab(tab) {
   if (!articles.length) {
     panel.innerHTML = `
       <div class="news-empty">
-        No news found right now.
-        ${!CONFIG.MARKETAUX_KEY || CONFIG.MARKETAUX_KEY === 'PASTE_YOUR_MARKETAUX_KEY_HERE'
-          ? '<br><br><strong style="color:var(--amber)">Action needed:</strong> Get a free key at <a href="https://marketaux.com" target="_blank" style="color:var(--accent)">marketaux.com</a>, then add it as <code>MARKETAUX_KEY</code> in your Render environment variables.'
-          : 'Try refreshing or check back later.'
-        }
+        No news found right now for your holdings. This could be because:
+        <br><br>
+        • Markets are closed and no recent articles match your symbols<br>
+        • Try the <strong>Market</strong> tab for general market news<br>
+        • Check the browser console (F12) for error details
       </div>`;
     newsTabLoaded[tab] = true;
     return;
