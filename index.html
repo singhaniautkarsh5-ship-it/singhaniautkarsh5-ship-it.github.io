@@ -573,6 +573,44 @@
   .user-dropdown-item { padding:10px 14px;font-size:13px;cursor:pointer;transition:background .15s;color:var(--text); }
   .user-dropdown-item:hover { background:var(--bg3); }
   .user-dropdown-item.danger { color:var(--red); }
+
+  /* ── PORTFOLIO MANAGER DEMO ── */
+  .user-dropdown { min-width:260px; }
+  .pm-menu-heading { padding:12px 14px 8px; border-bottom:1px solid var(--border); }
+  .pm-menu-name { font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--text); }
+  .pm-menu-role { font-size:11px;color:var(--text2);margin-top:2px; }
+  .pm-menu-section { padding:8px 14px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3); }
+  .pm-client-item { display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:12px;cursor:pointer;color:var(--text);transition:background .15s; }
+  .pm-client-item:hover { background:var(--bg3); }
+  .pm-client-item.active { color:var(--accent);background:rgba(79,142,247,.08); }
+  .pm-client-dot { width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0; }
+  .pm-client-item.active .pm-client-dot { background:var(--accent); }
+  .pm-client-meta { margin-left:auto;font-size:10px;color:var(--text3); }
+  .pm-menu-divider { height:1px;background:var(--border);margin:6px 0; }
+  .pm-context { display:flex;align-items:center;gap:8px;padding:9px 12px;margin:0 0 1rem;background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.22);border-radius:var(--radius-sm);font-size:12px;color:var(--text2); }
+  .pm-context strong { color:var(--text); }
+  .ips-suitability { margin:1.5rem 0;padding:1.25rem;border:1px solid var(--border2);border-radius:var(--radius);background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(155,127,232,.05)); }
+  .ips-suitability-head { display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem; }
+  .ips-suitability-title { font-family:var(--font-head);font-size:1rem;font-weight:700; }
+  .ips-suitability-sub { font-size:12px;color:var(--text2);margin-top:3px; }
+  .ips-verdict { font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap; }
+  .ips-verdict.suitable { color:var(--green);background:rgba(46,204,143,.12);border:1px solid rgba(46,204,143,.25); }
+  .ips-verdict.review { color:var(--amber);background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.25); }
+  .ips-verdict.unsuitable { color:var(--red);background:rgba(240,92,92,.12);border:1px solid rgba(240,92,92,.25); }
+  .ips-check-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+  .ips-check { padding:10px 11px;background:rgba(13,15,20,.35);border:1px solid var(--border);border-radius:8px; }
+  .ips-check-label { font-size:11px;color:var(--text2);margin-bottom:4px; }
+  .ips-check-result { font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px; }
+  .ips-check-result.pass { color:var(--green); }
+  .ips-check-result.warn { color:var(--amber); }
+  .ips-check-result.fail { color:var(--red); }
+  .ips-rationale { font-size:12px;line-height:1.65;color:var(--text2);margin-top:12px;padding-top:10px;border-top:1px solid var(--border); }
+  .ips-demo-note { font-size:10px;color:var(--text3);margin-top:9px; }
+  @media(max-width:600px) {
+    .ips-check-grid { grid-template-columns:1fr; }
+    .user-dropdown { right:-2px;min-width:245px; }
+  }
+
 </style>
 </head>
 <body>
@@ -596,10 +634,31 @@
     <button class="btn-sm" id="navHoldings" style="display:none" onclick="showScreen('screen-holdings')">+ Holdings</button>
     <button class="btn-sm btn-primary" id="navGetStarted" onclick="showAuthScreen('login')">Sign In</button>
     <div class="user-menu" id="userMenu" style="display:none">
-      <button class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()"></button>
+      <span id="pmNavLabel" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap;margin-right:9px">Alex Morgan</span><button class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()" aria-label="Open portfolio manager profile"></button>
       <div class="user-dropdown" id="userDropdown" style="display:none">
-        <div class="user-dropdown-email" id="userEmail"></div>
-        <div class="user-dropdown-item" onclick="showScreen('screen-holdings')">+ Edit Holdings</div>
+        <div class="pm-menu-heading">
+          <div class="pm-menu-name" id="pmManagerName">Alex Morgan</div>
+          <div class="pm-menu-role">Portfolio Manager · Demo workspace</div>
+          <div class="user-dropdown-email" id="userEmail" style="padding:5px 0 0;border:0"></div>
+        </div>
+        <div class="pm-menu-section">Switch portfolio</div>
+        <div class="pm-client-item active" id="pmManagerItem" onclick="switchDemoPortfolio('manager')">
+          <span class="pm-client-dot"></span><span>My portfolio</span><span class="pm-client-meta">Manager</span>
+        </div>
+        <div class="pm-client-item" id="pmClient-james" onclick="switchDemoPortfolio('james')">
+          <span class="pm-client-dot"></span><span>James Wilson</span><span class="pm-client-meta">Client 01</span>
+        </div>
+        <div class="pm-client-item" id="pmClient-sarah" onclick="switchDemoPortfolio('sarah')">
+          <span class="pm-client-dot"></span><span>Sarah Thompson</span><span class="pm-client-meta">Client 02</span>
+        </div>
+        <div class="pm-client-item" id="pmClient-michael" onclick="switchDemoPortfolio('michael')">
+          <span class="pm-client-dot"></span><span>Michael Brown</span><span class="pm-client-meta">Client 03</span>
+        </div>
+        <div class="pm-client-item" id="pmClient-emma" onclick="switchDemoPortfolio('emma')">
+          <span class="pm-client-dot"></span><span>Emma Davis</span><span class="pm-client-meta">Client 04</span>
+        </div>
+        <div class="pm-menu-divider"></div>
+        <div class="user-dropdown-item" onclick="showScreen('screen-holdings');toggleUserDropdown(true)">+ Edit Holdings</div>
         <div class="user-dropdown-item danger" onclick="signOut()">Sign Out</div>
       </div>
     </div>
@@ -775,6 +834,7 @@
 ═══════════════════════════════════ -->
 <div class="screen" id="screen-dashboard">
   <div class="dashboard-inner">
+    <div id="portfolioContextBanner" class="pm-context" style="display:none"></div>
     <div class="dash-header">
       <div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1108,7 +1168,6 @@ window.addEventListener('unhandledrejection', function(e) {
   setTimeout(() => div.remove(), 10000);
 });
 const CONFIG = {
-  TD_KEY:         'be5cb92f2c744ed98fd46f787a62088d',
   MARKETAUX_KEY:  '',  // key is server-side in Render env vars
   PROXY_URL:      'https://finwise-proxy.onrender.com',
   SUPABASE_URL:   'https://mbjfkvuyggsmaaczsjlf.supabase.co',
@@ -1145,7 +1204,155 @@ const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, {
     storageKey: 'finwise-auth',
   },
 });
+
 let currentUser = null;
+
+// ── Portfolio Manager multi-client demo data ──────────────────
+// These portfolios and IPS profiles are illustrative presentation data.
+// They are stored only in this browser session and are never written to Supabase.
+let activeDemoClientId = null;
+let managerHoldingsSnapshot = null;
+const DEMO_CLIENTS = {
+  james: {
+    name: 'James Wilson', label: 'Client 01', valueLabel: '£250,000',
+    ips: { risk: 'Moderate', horizon: '5–10 years', objective: 'Long-term capital growth with moderate volatility', maxSingle: 15, maxSector: 30, liquidity: 'Medium' },
+    holdings: [
+      {ticker:'MSFT',name:'Microsoft',sector:'Technology',market:'US',buy:365,qty:160,currentPrice:420},
+      {ticker:'JNJ',name:'Johnson & Johnson',sector:'Healthcare',market:'US',buy:155,qty:300,currentPrice:162},
+      {ticker:'KO',name:'Coca-Cola',sector:'Consumer Defensive',market:'US',buy:58,qty:600,currentPrice:62},
+      {ticker:'JPM',name:'JPMorgan Chase',sector:'Financial Services',market:'US',buy:175,qty:240,currentPrice:198},
+      {ticker:'V',name:'Visa',sector:'Financial Services',market:'US',buy:255,qty:180,currentPrice:285}
+    ]
+  },
+  sarah: {
+    name: 'Sarah Thompson', label: 'Client 02', valueLabel: '£420,000',
+    ips: { risk: 'Conservative', horizon: '3–5 years', objective: 'Capital preservation and steady income', maxSingle: 10, maxSector: 20, liquidity: 'High' },
+    holdings: [
+      {ticker:'PG',name:'Procter & Gamble',sector:'Consumer Defensive',market:'US',buy:155,qty:500,currentPrice:168},
+      {ticker:'PEP',name:'PepsiCo',sector:'Consumer Defensive',market:'US',buy:168,qty:450,currentPrice:174},
+      {ticker:'JNJ',name:'Johnson & Johnson',sector:'Healthcare',market:'US',buy:150,qty:450,currentPrice:162},
+      {ticker:'BND',name:'Vanguard Total Bond Market ETF',sector:'Fixed Income',market:'US',buy:71,qty:1800,currentPrice:73},
+      {ticker:'KO',name:'Coca-Cola',sector:'Consumer Defensive',market:'US',buy:57,qty:850,currentPrice:62}
+    ]
+  },
+  michael: {
+    name: 'Michael Brown', label: 'Client 03', valueLabel: '£175,000',
+    ips: { risk: 'Aggressive', horizon: '10+ years', objective: 'Maximise long-term capital appreciation', maxSingle: 25, maxSector: 45, liquidity: 'Medium' },
+    holdings: [
+      {ticker:'NVDA',name:'NVIDIA',sector:'Technology',market:'US',buy:112,qty:450,currentPrice:138},
+      {ticker:'AMD',name:'Advanced Micro Devices',sector:'Technology',market:'US',buy:145,qty:260,currentPrice:158},
+      {ticker:'AMZN',name:'Amazon',sector:'Consumer Cyclical',market:'US',buy:185,qty:140,currentPrice:205},
+      {ticker:'TSLA',name:'Tesla',sector:'Consumer Cyclical',market:'US',buy:245,qty:110,currentPrice:275},
+      {ticker:'META',name:'Meta Platforms',sector:'Communication Services',market:'US',buy:510,qty:30,currentPrice:575}
+    ]
+  },
+  emma: {
+    name: 'Emma Davis', label: 'Client 04', valueLabel: '£310,000',
+    ips: { risk: 'Moderate', horizon: '7–10 years', objective: 'Balanced growth with diversified exposure', maxSingle: 15, maxSector: 30, liquidity: 'Medium' },
+    holdings: [
+      {ticker:'AAPL',name:'Apple',sector:'Technology',market:'US',buy:190,qty:300,currentPrice:215},
+      {ticker:'COST',name:'Costco',sector:'Consumer Defensive',market:'US',buy:720,qty:100,currentPrice:790},
+      {ticker:'XOM',name:'Exxon Mobil',sector:'Energy',market:'US',buy:108,qty:260,currentPrice:116},
+      {ticker:'V',name:'Visa',sector:'Financial Services',market:'US',buy:260,qty:220,currentPrice:285},
+      {ticker:'UNH',name:'UnitedHealth Group',sector:'Healthcare',market:'US',buy:510,qty:130,currentPrice:545}
+    ]
+  }
+};
+
+function updateDemoPortfolioMenu() {
+  const ids = ['james','sarah','michael','emma'];
+  document.getElementById('pmManagerItem')?.classList.toggle('active', activeDemoClientId === null);
+  ids.forEach(id => document.getElementById('pmClient-' + id)?.classList.toggle('active', activeDemoClientId === id));
+  const banner = document.getElementById('portfolioContextBanner');
+  if (banner) {
+    if (activeDemoClientId && DEMO_CLIENTS[activeDemoClientId]) {
+      const c = DEMO_CLIENTS[activeDemoClientId];
+      banner.style.display = 'flex';
+      banner.innerHTML = `<span>◉</span><span>Viewing client portfolio: <strong>${c.name}</strong> · ${c.label} <span style="color:var(--text3)">|</span> IPS: ${c.ips.risk} risk · ${c.ips.horizon}</span><span style="margin-left:auto;color:var(--accent);font-size:11px">DEMO DATA</span>`;
+    } else {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+    }
+  }
+}
+
+function switchDemoPortfolio(id) {
+  if (!currentUser) {
+    showToast('Please sign in to use the portfolio manager demo.');
+    return;
+  }
+  if (activeDemoClientId === null || managerHoldingsSnapshot === null) managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
+  if (id === 'manager') {
+    activeDemoClientId = null;
+    appState.holdings = managerHoldingsSnapshot.map(h => ({...h}));
+    showToast('Showing your manager portfolio');
+  } else if (DEMO_CLIENTS[id]) {
+    activeDemoClientId = id;
+    appState.holdings = DEMO_CLIENTS[id].holdings.map(h => ({...h}));
+    showToast(`Now viewing ${DEMO_CLIENTS[id].name}'s portfolio`);
+  } else {
+    return;
+  }
+  toggleUserDropdown(true);
+  updateDemoPortfolioMenu();
+  // Ensure the demo can be presented even if the manager account has no personal holdings.
+  document.getElementById('navTabs').style.display = 'flex';
+  document.getElementById('navHoldings').style.display = 'inline-block';
+  document.getElementById('indicesStrip').style.display = 'block';
+  showScreen('screen-dashboard');
+  renderDashboard();
+  renderHoldingsTable();
+  if (activeDemoClientId) renderNews();
+}
+
+function getClientIPSSuitability(ticker, d) {
+  if (!activeDemoClientId || !DEMO_CLIENTS[activeDemoClientId]) {
+    return `<div class="ips-suitability">
+      <div class="ips-suitability-head"><div><div class="ips-suitability-title">Client IPS Suitability</div><div class="ips-suitability-sub">Investment Policy Statement alignment</div></div><span class="ips-verdict review">Select a client</span></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">You are viewing the portfolio manager's own workspace. Select one of your clients from the profile menu to assess whether <strong>${ticker}</strong> aligns with their investment objectives, risk tolerance and portfolio constraints.</div>
+    </div>`;
+  }
+  const client = DEMO_CLIENTS[activeDemoClientId];
+  const ips = client.ips;
+  const beta = parseFloat(d.beta);
+  const inferredBeta = Number.isFinite(beta) ? beta : (['NVDA','TSLA','AMD'].includes(ticker) ? 1.7 : ['KO','PG','JNJ','PEP'].includes(ticker) ? 0.65 : 1.05);
+  const riskBand = inferredBeta > 1.3 ? 'High' : inferredBeta < 0.85 ? 'Low' : 'Moderate';
+  let riskStatus = 'pass', riskText = `${riskBand} volatility profile is within the client's ${ips.risk.toLowerCase()} risk mandate.`;
+  if (ips.risk === 'Conservative' && riskBand === 'High') { riskStatus = 'fail'; riskText = 'High sensitivity to market movements conflicts with the client\'s capital-preservation mandate.'; }
+  else if (ips.risk === 'Conservative' && riskBand === 'Moderate') { riskStatus = 'warn'; riskText = 'Moderate market sensitivity may exceed the client\'s conservative risk preference.'; }
+  else if (ips.risk === 'Moderate' && riskBand === 'High') { riskStatus = 'warn'; riskText = 'Elevated volatility may be inconsistent with the client\'s moderate risk budget.'; }
+
+  const total = client.holdings.reduce((s,h) => s + h.currentPrice*h.qty, 0) || 1;
+  const sectorValue = client.holdings.filter(h => h.sector === (d.sector || 'Technology')).reduce((s,h) => s+h.currentPrice*h.qty,0);
+  const sectorPct = sectorValue / total * 100;
+  const concentrationStatus = sectorPct >= ips.maxSector ? 'warn' : 'pass';
+  const concentrationText = sectorPct >= ips.maxSector
+    ? `Existing ${d.sector || 'sector'} exposure is approximately ${sectorPct.toFixed(1)}%, at or above the ${ips.maxSector}% IPS sector limit.`
+    : `Current ${d.sector || 'sector'} exposure is approximately ${sectorPct.toFixed(1)}%, below the ${ips.maxSector}% IPS limit.`;
+  const horizonStatus = (ips.horizon.startsWith('3') && riskBand === 'High') ? 'warn' : 'pass';
+  const horizonText = horizonStatus === 'warn'
+    ? 'A shorter investment horizon makes a highly volatile single stock harder to reconcile with the IPS.'
+    : `The ${ips.horizon} investment horizon supports evaluating this equity as a longer-term holding.`;
+  const verdict = riskStatus === 'fail' ? 'unsuitable' : (riskStatus === 'warn' || concentrationStatus === 'warn' || horizonStatus === 'warn') ? 'review' : 'suitable';
+  const verdictText = verdict === 'suitable' ? 'Broadly suitable' : verdict === 'review' ? 'Requires review' : 'Not suitable';
+  const mark = status => status === 'pass' ? '✓' : status === 'warn' ? '!' : '✕';
+  const label = status => status === 'pass' ? 'Pass' : status === 'warn' ? 'Review' : 'Fail';
+  return `<div class="ips-suitability">
+    <div class="ips-suitability-head">
+      <div><div class="ips-suitability-title">Client IPS Suitability</div><div class="ips-suitability-sub">${client.name} · ${client.label} · ${ips.objective}</div></div>
+      <span class="ips-verdict ${verdict}">${verdictText}</span>
+    </div>
+    <div class="ips-check-grid">
+      <div class="ips-check"><div class="ips-check-label">Risk tolerance · ${ips.risk}</div><div class="ips-check-result ${riskStatus}">${mark(riskStatus)} ${label(riskStatus)} — ${riskBand} risk</div></div>
+      <div class="ips-check"><div class="ips-check-label">Investment horizon · ${ips.horizon}</div><div class="ips-check-result ${horizonStatus}">${mark(horizonStatus)} ${label(horizonStatus)}</div></div>
+      <div class="ips-check"><div class="ips-check-label">Sector concentration · ${ips.maxSector}% limit</div><div class="ips-check-result ${concentrationStatus}">${mark(concentrationStatus)} ${label(concentrationStatus)} — ${sectorPct.toFixed(1)}% existing</div></div>
+      <div class="ips-check"><div class="ips-check-label">Position size · ${ips.maxSingle}% maximum</div><div class="ips-check-result pass">✓ Policy limit recorded</div></div>
+    </div>
+    <div class="ips-rationale"><strong style="color:var(--text)">Portfolio manager's review:</strong> ${riskText} ${horizonText} ${concentrationText} Proposed position sizing should remain within the client's ${ips.maxSingle}% single-security limit.</div>
+    <div class="ips-demo-note">Illustrative demo assessment using sample client IPS data and indicative risk assumptions. Not investment advice or an automated trade instruction.</div>
+  </div>`;
+}
+
 
 // ── Auth UI ───────────────────────────────────────────────────
 function togglePw(inputId, btn) {
@@ -1205,6 +1412,8 @@ async function doSignup() {
 async function signOut() {
   await sb.auth.signOut();
   currentUser = null;
+  activeDemoClientId = null;
+  managerHoldingsSnapshot = null;
   appState.holdings = [];
   appState.watchlist = [];
   appState.alerts = [];
@@ -1229,9 +1438,11 @@ document.addEventListener('click', e => {
 function setUserNav(user) {
   const initial = (user.email || 'U')[0].toUpperCase();
   document.getElementById('userAvatar').textContent = initial;
-  document.getElementById('userEmail').textContent  = user.email;
+  document.getElementById('userEmail').textContent  = user.email || '';
+  document.getElementById('pmManagerName').textContent = 'Alex Morgan';
   document.getElementById('userMenu').style.display = 'inline-flex';
   document.getElementById('navGetStarted').style.display = 'none';
+  updateDemoPortfolioMenu();
 }
 
 // ── Database sync ─────────────────────────────────────────────
@@ -1282,7 +1493,7 @@ async function dbLoadAll() {
 }
 
 async function dbSaveHolding(holding) {
-  if (!currentUser) return;
+  if (!currentUser || activeDemoClientId) return;
   const row = {
     user_id: currentUser.id, ticker: holding.ticker,
     name: holding.name, sector: holding.sector || '',
@@ -1295,7 +1506,7 @@ async function dbSaveHolding(holding) {
 }
 
 async function dbDeleteHolding(holding) {
-  if (!currentUser || !holding.dbId) return;
+  if (!currentUser || activeDemoClientId || !holding.dbId) return;
   await sb.from('portfolios').delete().eq('id', holding.dbId);
 }
 
@@ -1343,6 +1554,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     hideAuthScreen();
     const name = currentUser.email.split('@')[0];
     await dbLoadAll();
+    managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
     if (appState.holdings.length) {
       showToast(`✓ Welcome back, ${name}!`);
       showScreen('screen-dashboard');
@@ -3192,7 +3404,8 @@ function renderCompanyView(ticker, d) {
       <div class="section-title">Financial Ratios — Live Sector Benchmarks</div>
       <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">Benchmarks calculated live from sector peers. <span style="color:var(--green)">Excellent</span>, <span style="color:var(--accent)">Good</span>, <span style="color:var(--amber)">Average</span>, or <span style="color:var(--red)">Below Average</span> — no finance knowledge needed.</p>
       <div class="ratio-grid">${renderLiveRatioCards(d.ratios)}</div>
-    </div>`;
+    </div>
+    ${getClientIPSSuitability(ticker, d)}`;
 }
 
 function renderLiveRatioCards(ratios) {
@@ -4229,6 +4442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let loadOk = false;
     try { loadOk = await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
+    managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
 
     console.log('Session restored:', currentUser.email, '| Holdings:', appState.holdings.length, '| Load:', loadOk);
 
