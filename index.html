@@ -587,6 +587,19 @@
   .pm-client-item.active .pm-client-dot { background:var(--accent); }
   .pm-client-meta { margin-left:auto;font-size:10px;color:var(--text3); }
   .pm-menu-divider { height:1px;background:var(--border);margin:6px 0; }
+  .pm-aum-panel { display:none; margin:0 0 1.25rem; }
+  .pm-aum-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px; }
+  .pm-aum-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;min-width:0; }
+  .pm-aum-label { color:var(--text2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase; }
+  .pm-aum-value { color:var(--text);font-family:var(--font-head);font-size:clamp(22px,3vw,30px);font-weight:700;margin-top:9px;letter-spacing:-.03em; }
+  .pm-aum-sub { color:var(--text3);font-size:11px;margin-top:6px;line-height:1.5; }
+  .pm-client-table { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+  .pm-client-table-head { display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700; }
+  .pm-client-row { display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--border);font-size:12px; }
+  .pm-client-row:last-child { border-bottom:0; }
+  .pm-client-row.header { color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700; }
+  .pm-demo-disclaimer { color:var(--text3);font-size:10px;line-height:1.5;padding:10px 2px 0; }
+  @media(max-width:650px) { .pm-aum-grid { grid-template-columns:1fr;gap:9px; } .pm-client-row { grid-template-columns:1.2fr 1fr 1fr; } .pm-client-row > :last-child { display:none; } }
   .pm-context { display:flex;align-items:center;gap:8px;padding:9px 12px;margin:0 0 1rem;background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.22);border-radius:var(--radius-sm);font-size:12px;color:var(--text2); }
   .pm-context strong { color:var(--text); }
   .ips-suitability { margin:1.5rem 0;padding:1.25rem;border:1px solid var(--border2);border-radius:var(--radius);background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(155,127,232,.05)); }
@@ -643,7 +656,7 @@
         </div>
         <div class="pm-menu-section">Switch portfolio</div>
         <div class="pm-client-item active" id="pmManagerItem" onclick="switchDemoPortfolio('manager')">
-          <span class="pm-client-dot"></span><span>My portfolio</span><span class="pm-client-meta">Manager</span>
+          <span class="pm-client-dot"></span><span>Manager overview</span><span class="pm-client-meta">AUM</span>
         </div>
         <div class="pm-client-item" id="pmClient-james" onclick="switchDemoPortfolio('james')">
           <span class="pm-client-dot"></span><span>James Wilson</span><span class="pm-client-meta">Client 01</span>
@@ -658,7 +671,7 @@
           <span class="pm-client-dot"></span><span>Emma Davis</span><span class="pm-client-meta">Client 04</span>
         </div>
         <div class="pm-menu-divider"></div>
-        <div class="user-dropdown-item" onclick="showScreen('screen-holdings');toggleUserDropdown(true)">+ Edit Holdings</div>
+        <div class="user-dropdown-item" id="pmEditHoldings" onclick="showScreen('screen-holdings');toggleUserDropdown(true)">+ Edit Holdings</div>
         <div class="user-dropdown-item" onclick="resetDemoWorkspace();toggleUserDropdown(true)">Reset demo workspace</div>
       </div>
     </div>
@@ -838,7 +851,7 @@
     <div class="dash-header">
       <div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <h2>Portfolio Overview</h2>
+          <h2 id="dashboardTitle">Portfolio Manager Overview</h2>
           <span id="realtimeBadge"></span>
         </div>
         <p id="dashDate">Loading...</p>
@@ -871,7 +884,16 @@
     </div>
     <div class="indices-grid" id="indicesGrid"></div>
     <div class="kpi-grid" id="kpiGrid"></div>
-    <div class="dash-grid">
+    <section class="pm-aum-panel" id="pmAumPanel" aria-label="Portfolio manager assets under management">
+      <div class="pm-aum-grid" id="pmAumCards"></div>
+      <div class="pm-client-table">
+        <div class="pm-client-table-head"><span>Client assets under management</span><span style="color:var(--text3);font-size:10px;font-weight:500">4 client mandates</span></div>
+        <div class="pm-client-row header"><span>Client</span><span>AUM</span><span>Total return</span><span>Annualised risk</span></div>
+        <div id="pmAumClientRows"></div>
+      </div>
+      <div class="pm-demo-disclaimer">Illustrative presentation data. Client returns are calculated from the sample holdings; annualised standard deviations use assumed client-level volatility and a 0.30 cross-client correlation assumption. Not live performance or a verified risk calculation.</div>
+    </section>
+    <div class="dash-grid" id="personalPortfolioCharts">
       <div class="card">
         <div class="card-title">Holdings by Weight</div>
         <div class="chart-bar-wrap" id="holdingsBarChart"></div>
@@ -884,7 +906,7 @@
         </div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="personalHoldingsCard">
       <div class="card-title">Your Holdings</div>
       <div class="holdings-mini" id="holdingsMini"></div>
     </div>
@@ -1212,14 +1234,6 @@ let currentUser = null;
 // They are stored only in this browser session and are never written to Supabase.
 let activeDemoClientId = null;
 let managerHoldingsSnapshot = null;
-const DEMO_MANAGER_HOLDINGS = [
-  {ticker:'MSFT',name:'Microsoft',sector:'Technology',market:'US',buy:365,qty:85,currentPrice:420},
-  {ticker:'NVDA',name:'NVIDIA',sector:'Technology',market:'US',buy:112,qty:120,currentPrice:138},
-  {ticker:'V',name:'Visa',sector:'Financial Services',market:'US',buy:255,qty:95,currentPrice:285},
-  {ticker:'LLY',name:'Eli Lilly',sector:'Healthcare',market:'US',buy:720,qty:28,currentPrice:790},
-  {ticker:'KO',name:'Coca-Cola',sector:'Consumer Defensive',market:'US',buy:58,qty:210,currentPrice:62},
-  {ticker:'BND',name:'Vanguard Total Bond Market ETF',sector:'Fixed Income',market:'US',buy:71,qty:500,currentPrice:73}
-];
 const DEMO_CLIENTS = {
   james: {
     name: 'James Wilson', label: 'Client 01', valueLabel: '£250,000',
@@ -1288,8 +1302,8 @@ function switchDemoPortfolio(id) {
   if (activeDemoClientId === null || managerHoldingsSnapshot === null) managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
   if (id === 'manager') {
     activeDemoClientId = null;
-    appState.holdings = managerHoldingsSnapshot.map(h => ({...h}));
-    showToast('Showing your manager portfolio');
+    appState.holdings = [];
+    showToast('Showing manager-wide AUM overview');
   } else if (DEMO_CLIENTS[id]) {
     activeDemoClientId = id;
     appState.holdings = DEMO_CLIENTS[id].holdings.map(h => ({...h}));
@@ -1299,9 +1313,12 @@ function switchDemoPortfolio(id) {
   }
   toggleUserDropdown(true);
   updateDemoPortfolioMenu();
-  // Ensure the demo can be presented even if the manager account has no personal holdings.
+  const managerView = activeDemoClientId === null;
+  document.getElementById('dashboardTitle').textContent = managerView ? 'Portfolio Manager Overview' : `${DEMO_CLIENTS[activeDemoClientId].name} · Portfolio`;
+  document.getElementById('navHoldings').style.display = managerView ? 'none' : 'inline-block';
+  document.getElementById('pmEditHoldings').style.display = managerView ? 'none' : 'block';
+  // Ensure the demo can be presented without showing personal holdings.
   document.getElementById('navTabs').style.display = 'flex';
-  document.getElementById('navHoldings').style.display = 'inline-block';
   document.getElementById('indicesStrip').style.display = 'block';
   showScreen('screen-dashboard');
   renderDashboard();
@@ -1311,9 +1328,12 @@ function switchDemoPortfolio(id) {
 
 function resetDemoWorkspace() {
   activeDemoClientId = null;
-  appState.holdings = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
-  managerHoldingsSnapshot = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  appState.holdings = [];
+  managerHoldingsSnapshot = [];
   updateDemoPortfolioMenu();
+  document.getElementById('dashboardTitle').textContent = 'Portfolio Manager Overview';
+  document.getElementById('navHoldings').style.display = 'none';
+  document.getElementById('pmEditHoldings').style.display = 'none';
   showScreen('screen-dashboard');
   renderDashboard();
   renderHoldingsTable();
@@ -1324,7 +1344,7 @@ function getClientIPSSuitability(ticker, d) {
   if (!activeDemoClientId || !DEMO_CLIENTS[activeDemoClientId]) {
     return `<div class="ips-suitability">
       <div class="ips-suitability-head"><div><div class="ips-suitability-title">Client IPS Suitability</div><div class="ips-suitability-sub">Investment Policy Statement alignment</div></div><span class="ips-verdict review">Select a client</span></div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6">You are viewing the portfolio manager's own workspace. Select one of your clients from the profile menu to assess whether <strong>${ticker}</strong> aligns with their investment objectives, risk tolerance and portfolio constraints.</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">You are viewing the manager-wide AUM overview. Select a client from the profile menu to assess whether <strong>${ticker}</strong> aligns with their investment objectives, risk tolerance and portfolio constraints.</div>
     </div>`;
   }
   const client = DEMO_CLIENTS[activeDemoClientId];
@@ -2712,7 +2732,64 @@ function updateRiskReturnKPIs(h) {
   updateTargetKPI();
 }
 
+function getDemoClientPerformance(client) {
+  const invested = client.holdings.reduce((sum,h) => sum + h.buy*h.qty, 0);
+  const current = client.holdings.reduce((sum,h) => sum + h.currentPrice*h.qty, 0);
+  return invested > 0 ? (current-invested)/invested : 0;
+}
+
+function buildManagerAumDashboard() {
+  const clients = Object.entries(DEMO_CLIENTS).map(([id,c]) => {
+    const aum = Number(c.valueLabel.replace(/[^0-9.]/g,'')) || 0;
+    const riskByProfile = { Conservative:0.075, Moderate:0.125, Aggressive:0.205 };
+    return { id, name:c.name, aum, ret:getDemoClientPerformance(c), volatility:riskByProfile[c.ips.risk] || 0.12 };
+  });
+  const totalAum = clients.reduce((sum,c)=>sum+c.aum,0);
+  const weights = clients.map(c=>c.aum/(totalAum||1));
+  const totalReturn = clients.reduce((sum,c,i)=>sum+weights[i]*c.ret,0);
+  // Illustrative portfolio volatility using client-level volatilities and
+  // an explicitly disclosed 0.30 average cross-client correlation assumption.
+  const assumedCorrelation = 0.30;
+  let variance = 0;
+  clients.forEach((a,i)=>clients.forEach((b,j)=>{
+    variance += weights[i]*weights[j]*a.volatility*b.volatility*(i===j?1:assumedCorrelation);
+  }));
+  const portfolioStdDev = Math.sqrt(Math.max(variance,0));
+  const totalReturnValue = totalAum*totalReturn;
+  const fmtGBP = n => '£'+Math.round(n).toLocaleString('en-GB');
+  const signedPct = n => `${n>=0?'+':''}${(n*100).toFixed(2)}%`;
+
+  document.getElementById('kpiGrid').innerHTML = '';
+  document.getElementById('pmAumCards').innerHTML = `
+    <div class="pm-aum-card"><div class="pm-aum-label">Total assets under management</div><div class="pm-aum-value">${fmtGBP(totalAum)}</div><div class="pm-aum-sub">Combined assets across ${clients.length} client portfolios</div></div>
+    <div class="pm-aum-card"><div class="pm-aum-label">Annualised standard deviation</div><div class="pm-aum-value">${(portfolioStdDev*100).toFixed(2)}%</div><div class="pm-aum-sub">Estimated aggregate portfolio volatility</div></div>
+    <div class="pm-aum-card"><div class="pm-aum-label">Total portfolio return</div><div class="pm-aum-value" style="color:${totalReturn>=0?'var(--green)':'var(--red)'}">${signedPct(totalReturn)}</div><div class="pm-aum-sub">${fmtGBP(totalReturnValue)} weighted illustrative gain across client AUM</div></div>`;
+  document.getElementById('pmAumClientRows').innerHTML = clients.map(c=>`
+    <div class="pm-client-row">
+      <span style="font-weight:600;color:var(--text)">${c.name}</span>
+      <span>${fmtGBP(c.aum)}</span>
+      <span style="color:${c.ret>=0?'var(--green)':'var(--red)'}">${signedPct(c.ret)}</span>
+      <span>${(c.volatility*100).toFixed(1)}%</span>
+    </div>`).join('');
+  document.getElementById('pmAumPanel').style.display = 'block';
+  document.getElementById('personalPortfolioCharts').style.display = 'none';
+  document.getElementById('personalHoldingsCard').style.display = 'none';
+  document.getElementById('navHoldings').style.display = 'none';
+  document.getElementById('pmEditHoldings').style.display = 'none';
+}
+
 function buildDashboardDOM() {
+  if (activeDemoClientId === null) {
+    document.getElementById('dashboardTitle').textContent = 'Portfolio Manager Overview';
+    buildManagerAumDashboard();
+    return;
+  }
+  document.getElementById('dashboardTitle').textContent = `${DEMO_CLIENTS[activeDemoClientId].name} · Portfolio`;
+  document.getElementById('pmAumPanel').style.display = 'none';
+  document.getElementById('personalPortfolioCharts').style.display = '';
+  document.getElementById('personalHoldingsCard').style.display = '';
+  document.getElementById('navHoldings').style.display = 'inline-block';
+  document.getElementById('pmEditHoldings').style.display = 'block';
   const h = appState.holdings;
   const totalInvested = h.reduce((s,x) => s + x.buy * x.qty, 0);
   const totalCurrent  = h.reduce((s,x) => s + x.currentPrice * x.qty, 0);
@@ -3253,10 +3330,34 @@ async function loadCompany(ticker) {
   if (appState.companyCache[ticker]) { renderCompanyView(ticker, appState.companyCache[ticker]); return; }
 
   // Fetch profile + quote in parallel from Yahoo Finance
-  const [profile, quote] = await Promise.all([
+  let [profile, quote] = await Promise.all([
     getProfile(ticker),
     getQuote(ticker),
   ]);
+
+  // Presentation fallback: Microsoft remains fully analysable even when the
+  // external market-data proxy is unavailable. These figures are illustrative,
+  // deliberately labelled as demo data, and are not live market quotations.
+  const msftDemoProfile = {
+    name: 'Microsoft Corporation',
+    description: 'Microsoft develops and supports software, services, devices and solutions worldwide. Its businesses include Productivity and Business Processes, Intelligent Cloud, and More Personal Computing. Products include Microsoft 365, Azure, Windows, LinkedIn, Dynamics and Xbox.',
+    sector: 'Technology', industry: 'Software - Infrastructure', hq: 'Redmond, Washington, USA',
+    employees: '228,000', website: 'https://www.microsoft.com', exchange: 'NASDAQ',
+    marketCap: 3.18e12, revenue: 2.45e11, pe: 34.6, pb: 11.8, roe: 0.365,
+    de: 0.32, grossMargin: 0.69, currentRatio: 1.35, eps: 12.40,
+    forwardPE: 29.8, dividendYield: 0.007, beta: 0.92,
+    week52High: 468.35, week52Low: 376.20,
+  };
+  const msftDemoQuote = {
+    symbol: 'MSFT', name: 'Microsoft Corporation', price: 427.50,
+    changesPercentage: 0.84, marketCap: 3.18e12, sector: 'Technology', exchange: 'NASDAQ'
+  };
+  const usingMsftDemo = ticker.toUpperCase() === 'MSFT';
+  if (usingMsftDemo) {
+    // Keep the Microsoft presentation example deterministic, even if live APIs respond.
+    profile = { ...msftDemoProfile };
+    quote = { ...msftDemoQuote };
+  }
 
   const p = profile || {};
   const q = quote || {};
@@ -3322,6 +3423,7 @@ async function loadCompany(ticker) {
     peers:         peerTickers,
     peerQuotes,
     ratios,
+    demoData:      usingMsftDemo,
   };
   appState.companyCache[ticker] = cd;
   renderCompanyView(ticker, cd);
@@ -3378,8 +3480,10 @@ function renderCompanyView(ticker, d) {
         <div class="price">${(+d.price).toLocaleString(undefined,{maximumFractionDigits:2})}</div>
         <div class="price-change ${pos?'pnl-positive':'pnl-negative'}">${pos?'▲':'▼'} ${Math.abs(+d.change).toFixed(2)}% today</div>
         ${d.website?`<a href="${d.website}" target="_blank" style="font-size:11px;color:var(--accent);display:block;margin-top:4px">${d.website.replace(/https?:\/\//,'')}</a>`:''}
+        ${d.demoData?`<div style="font-size:10px;color:var(--amber);margin-top:6px">● Illustrative demo price · not live</div>`:''}
       </div>
     </div>
+    ${d.demoData?`<div style="border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.07);border-radius:10px;padding:10px 13px;margin-bottom:1rem;font-size:12px;color:var(--amber)">Presentation mode: Microsoft figures below are illustrative sample data used because the live market-data service did not return a complete response. They are not current market prices or verified financial statements.</div>`:''}
     <div class="card" style="margin-bottom:1.5rem">
       <div class="section-title">About the Company</div>
       <p style="font-size:14px;color:var(--text2);line-height:1.7">${(d.description||'').slice(0,600)}${(d.description||'').length>600?'...':''}</p>
@@ -4435,23 +4539,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Presentation mode: no sign-in or account setup. Load an illustrative manager workspace.
   currentUser = null;
   activeDemoClientId = null;
-  appState.holdings = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
-  managerHoldingsSnapshot = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  appState.holdings = [];
+  managerHoldingsSnapshot = [];
   appState.watchlist = JSON.parse(localStorage.getItem('fw_watchlist') || '[]');
   appState.alerts = JSON.parse(localStorage.getItem('fw_alerts') || '[]');
 
   document.getElementById('navGetStarted').style.display = 'none';
   document.getElementById('navTabs').style.display = 'flex';
-  document.getElementById('navHoldings').style.display = 'inline-block';
+  document.getElementById('navHoldings').style.display = 'none';
   document.getElementById('userMenu').style.display = 'inline-flex';
   document.getElementById('userAvatar').textContent = 'A';
   document.getElementById('pmNavLabel').textContent = 'Alex Morgan';
   document.getElementById('pmManagerName').textContent = 'Alex Morgan';
+  document.getElementById('dashboardTitle').textContent = 'Portfolio Manager Overview';
+  document.getElementById('pmEditHoldings').style.display = 'none';
   document.getElementById('userEmail').textContent = 'Demo workspace · Illustrative data';
   hideAuthScreen();
   updateDemoPortfolioMenu();
   showScreen('screen-dashboard');
-  renderHoldingsTable();
   renderDashboard();
   renderNews();
 });
