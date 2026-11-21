@@ -624,6 +624,40 @@
     .user-dropdown { right:-2px;min-width:245px; }
   }
 
+
+  /* Portfolio manager benchmark and client performance report */
+  .pm-aum-card.pm-benchmark-card { border-color:rgba(79,142,247,.28); }
+  .pm-benchmark-note { color:var(--text3);font-size:10px;line-height:1.55;margin-top:12px; }
+  .client-summary-btn { display:none; }
+  .client-report-overlay { position:fixed;inset:0;z-index:9999;background:rgba(4,7,13,.82);backdrop-filter:blur(8px);display:none;overflow:auto;padding:28px 16px; }
+  .client-report-page { width:min(100%,980px);margin:0 auto;background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.45); }
+  .client-report-top { display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px; }
+  .client-report-actions { display:flex;gap:8px;flex-wrap:wrap; }
+  .client-report-kpis { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0; }
+  .client-report-kpi { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px; }
+  .client-report-kpi label { display:block;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px; }
+  .client-report-kpi strong { font-family:var(--font-head);font-size:20px; }
+  .client-report-section { margin-top:24px; }
+  .client-report-section h3 { font-family:var(--font-head);font-size:15px;margin-bottom:12px; }
+  .client-report-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .client-report-table th,.client-report-table td { padding:11px 9px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap; }
+  .client-report-table th:first-child,.client-report-table td:first-child { text-align:left; }
+  .client-report-table th { color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.05em; }
+  .client-period-switch { display:flex;gap:6px;background:var(--surface);padding:4px;border-radius:9px;width:fit-content; }
+  .client-period-switch button { border:0;background:transparent;color:var(--text2);padding:8px 13px;border-radius:7px;cursor:pointer;font:inherit;font-size:12px; }
+  .client-period-switch button.active { background:var(--accent);color:#fff; }
+  .client-report-disclaimer { color:var(--text3);font-size:10px;line-height:1.6;margin-top:20px; }
+  @media(max-width:700px) { .client-report-page{padding:18px}.client-report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.client-report-table{font-size:10px}.client-report-table th,.client-report-table td{padding:9px 5px} }
+  @media print {
+    body * { visibility:hidden !important; }
+    #clientReportOverlay,#clientReportOverlay * { visibility:visible !important; }
+    #clientReportOverlay { display:block !important;position:absolute;inset:0;background:#fff;padding:0;overflow:visible; }
+    .client-report-page { width:100%;max-width:none;background:#fff;color:#111;border:0;box-shadow:none;padding:12px; }
+    .client-report-page * { color:#111 !important; }
+    .client-report-actions,.client-period-switch { display:none !important; }
+    .client-report-kpi { background:#f5f6f8;border:1px solid #ddd; }
+  }
+
 </style>
 </head>
 <body>
@@ -704,6 +738,30 @@
 </div>
 
 <!-- TOAST -->
+
+<!-- Client performance report overlay -->
+<div class="client-report-overlay" id="clientReportOverlay" onclick="if(event.target===this)closeClientPerformanceReport()">
+  <div class="client-report-page">
+    <div class="client-report-top">
+      <div>
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700">FINWISE · CLIENT REPORT</div>
+        <h2 id="clientReportTitle" style="font-family:var(--font-head);font-size:25px;margin-top:7px">Client performance summary</h2>
+        <div id="clientReportSubtitle" style="color:var(--text2);font-size:12px;margin-top:5px"></div>
+      </div>
+      <div class="client-report-actions">
+        <button class="btn-sm" onclick="downloadClientPerformanceCSV()">⬇ Download CSV</button>
+        <button class="btn-sm" onclick="window.print()">Print / Save PDF</button>
+        <button class="btn-sm" onclick="closeClientPerformanceReport()">✕ Close</button>
+      </div>
+    </div>
+    <div class="client-period-switch" role="group" aria-label="Report period">
+      <button id="clientPeriodQuarter" class="active" onclick="setClientReportPeriod('quarter')">Last quarter</button>
+      <button id="clientPeriodYear" onclick="setClientReportPeriod('year')">Last year</button>
+    </div>
+    <div id="clientReportBody"></div>
+    <div class="client-report-disclaimer">Illustrative presentation report generated from FinWise demo holdings and assumed period-return estimates. Figures are not live custodian records, audited performance, or a guarantee of future results. Returns are shown before fees and taxes unless otherwise stated.</div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- GLOBAL INDICES TICKER STRIP (shown when on dashboard/news/search) -->
@@ -862,6 +920,7 @@
           <button class="currency-btn" onclick="setCurrency('INR',this)">₹ INR</button>
           <button class="currency-btn" onclick="setCurrency('GBP',this)">£ GBP</button>
         </div>
+        <button class="btn-sm client-summary-btn" id="clientSummaryBtn" onclick="openClientPerformanceReport()" title="Open client performance summary">↓ Download summary</button>
         <button class="btn-sm" onclick="exportPDF()" title="Export portfolio PDF">⬇ PDF</button>
         <button class="btn-sm" onclick="emailAlertDigest()" title="Email alert summary">✉ Alert</button>
         <button class="btn-sm btn-primary" onclick="showScreen('screen-search')">Analyse →</button>
@@ -1314,6 +1373,7 @@ function switchDemoPortfolio(id) {
   toggleUserDropdown(true);
   updateDemoPortfolioMenu();
   const managerView = activeDemoClientId === null;
+  document.getElementById('clientSummaryBtn').style.display = managerView ? 'none' : 'inline-flex';
   document.getElementById('dashboardTitle').textContent = managerView ? 'Portfolio Manager Overview' : `${DEMO_CLIENTS[activeDemoClientId].name} · Portfolio`;
   document.getElementById('navHoldings').style.display = managerView ? 'none' : 'inline-block';
   document.getElementById('pmEditHoldings').style.display = managerView ? 'none' : 'block';
@@ -1338,6 +1398,120 @@ function resetDemoWorkspace() {
   renderDashboard();
   renderHoldingsTable();
   showToast('Demo workspace reset');
+}
+
+
+let clientReportPeriod = 'quarter';
+let currentClientReportRows = [];
+
+function getClientReportData(period) {
+  const client = DEMO_CLIENTS[activeDemoClientId];
+  if (!client) return null;
+  const scale = period === 'quarter' ? 0.28 : 1;
+  const rows = client.holdings.map(h => {
+    const marketValue = h.currentPrice * h.qty;
+    const cumulativeReturn = h.buy ? (h.currentPrice-h.buy)/h.buy : 0;
+    const periodReturn = cumulativeReturn * scale;
+    const startValue = marketValue / (1 + periodReturn);
+    const pnl = marketValue - startValue;
+    return {...h, marketValue, periodReturn, startValue, pnl};
+  });
+  const openingValue = rows.reduce((sum,r)=>sum+r.startValue,0);
+  const closingValue = rows.reduce((sum,r)=>sum+r.marketValue,0);
+  const pnl = closingValue-openingValue;
+  const totalReturn = openingValue ? pnl/openingValue : 0;
+  return {client,rows,openingValue,closingValue,pnl,totalReturn,period};
+}
+
+function openClientPerformanceReport() {
+  if (!activeDemoClientId || !DEMO_CLIENTS[activeDemoClientId]) {
+    showToast('Select a client before opening a performance summary');
+    return;
+  }
+  clientReportPeriod = 'quarter';
+  document.getElementById('clientReportOverlay').style.display = 'block';
+  renderClientPerformanceReport();
+}
+
+function closeClientPerformanceReport() {
+  document.getElementById('clientReportOverlay').style.display = 'none';
+}
+
+function setClientReportPeriod(period) {
+  clientReportPeriod = period === 'year' ? 'year' : 'quarter';
+  renderClientPerformanceReport();
+}
+
+function renderClientPerformanceReport() {
+  const data = getClientReportData(clientReportPeriod);
+  if (!data) return;
+  const {client,rows,openingValue,closingValue,pnl,totalReturn,period} = data;
+  currentClientReportRows = rows;
+  const fmt = n => '£' + Math.round(n).toLocaleString('en-GB');
+  const pct = n => (n>=0?'+':'')+(n*100).toFixed(2)+'%';
+  const periodLabel = period === 'quarter' ? 'Last quarter' : 'Last year';
+  document.getElementById('clientReportTitle').textContent = `${client.name} · Performance summary`;
+  document.getElementById('clientReportSubtitle').textContent = `${client.label} · ${periodLabel} · Illustrative reporting period`;
+  document.getElementById('clientPeriodQuarter').classList.toggle('active',period==='quarter');
+  document.getElementById('clientPeriodYear').classList.toggle('active',period==='year');
+  document.getElementById('clientReportBody').innerHTML = `
+    <div class="client-report-kpis">
+      <div class="client-report-kpi"><label>Opening portfolio value</label><strong>${fmt(openingValue)}</strong></div>
+      <div class="client-report-kpi"><label>Closing portfolio value</label><strong>${fmt(closingValue)}</strong></div>
+      <div class="client-report-kpi"><label>Period return</label><strong style="color:${totalReturn>=0?'var(--green)':'var(--red)'}">${pct(totalReturn)}</strong></div>
+      <div class="client-report-kpi"><label>Profit / loss</label><strong style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}${fmt(pnl)}</strong></div>
+    </div>
+    <div class="client-report-section">
+      <h3>Portfolio holdings performance</h3>
+      <div style="overflow-x:auto">
+        <table class="client-report-table">
+          <thead><tr><th>Holding</th><th>Quantity</th><th>Closing value</th><th>Period return</th><th>Contribution P&amp;L</th></tr></thead>
+          <tbody>${rows.map(r=>`<tr>
+            <td><strong>${r.name}</strong><div style="color:var(--text3);font-size:10px">${r.ticker} · ${r.sector}</div></td>
+            <td>${Number(r.qty).toLocaleString('en-GB')}</td>
+            <td>${fmt(r.marketValue)}</td>
+            <td style="color:${r.periodReturn>=0?'var(--green)':'var(--red)'}">${pct(r.periodReturn)}</td>
+            <td style="color:${r.pnl>=0?'var(--green)':'var(--red)'}">${r.pnl>=0?'+':''}${fmt(r.pnl)}</td>
+          </tr>`).join('')}</tbody>
+          <tfoot><tr><th colspan="2">Total portfolio</th><th>${fmt(closingValue)}</th><th>${pct(totalReturn)}</th><th>${pnl>=0?'+':''}${fmt(pnl)}</th></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="client-report-section">
+      <h3>Mandate context</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div class="client-report-kpi"><label>Risk profile</label><strong style="font-size:15px">${client.ips.risk}</strong></div>
+        <div class="client-report-kpi"><label>Investment horizon</label><strong style="font-size:15px">${client.ips.horizon}</strong></div>
+        <div class="client-report-kpi"><label>Investment objective</label><strong style="font-size:13px;line-height:1.4">${client.ips.objective}</strong></div>
+      </div>
+    </div>`;
+}
+
+function downloadClientPerformanceCSV() {
+  const data = getClientReportData(clientReportPeriod);
+  if (!data) return;
+  const {client,rows,openingValue,closingValue,pnl,totalReturn,period} = data;
+  const csvRows = [
+    ['FinWise client performance summary'],
+    ['Client',client.name],
+    ['Period',period==='quarter'?'Last quarter':'Last year'],
+    ['Opening portfolio value (GBP)',openingValue.toFixed(2)],
+    ['Closing portfolio value (GBP)',closingValue.toFixed(2)],
+    ['Portfolio return (%)',(totalReturn*100).toFixed(2)],
+    ['Portfolio P&L (GBP)',pnl.toFixed(2)],
+    [],
+    ['Ticker','Holding','Sector','Quantity','Closing value (GBP)','Period return (%)','Contribution P&L (GBP)'],
+    ...rows.map(r=>[r.ticker,r.name,r.sector,r.qty,r.marketValue.toFixed(2),(r.periodReturn*100).toFixed(2),r.pnl.toFixed(2)])
+  ];
+  const csv = csvRows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `FinWise-${client.name.replace(/\s+/g,'-')}-${period}-summary.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Client performance summary downloaded');
 }
 
 function getClientIPSSuitability(ticker, d) {
@@ -2755,6 +2929,16 @@ function buildManagerAumDashboard() {
     variance += weights[i]*weights[j]*a.volatility*b.volatility*(i===j?1:assumedCorrelation);
   }));
   const portfolioStdDev = Math.sqrt(Math.max(variance,0));
+  // Illustrative benchmark-relative analytics. Benchmark assumptions are fixed for this demo.
+  const benchmarkReturn = 0.072;       // 7.20% total return over the same illustrative period
+  const benchmarkVolatility = 0.135;   // 13.50% annualised benchmark volatility
+  const portfolioBenchmarkCorrelation = 0.82;
+  const activeReturn = totalReturn - benchmarkReturn;
+  const activeRisk = Math.sqrt(Math.max(0,
+    portfolioStdDev**2 + benchmarkVolatility**2
+    - 2*portfolioBenchmarkCorrelation*portfolioStdDev*benchmarkVolatility
+  ));
+  const informationRatio = activeRisk > 0 ? activeReturn/activeRisk : 0;
   const totalReturnValue = totalAum*totalReturn;
   const fmtGBP = n => '£'+Math.round(n).toLocaleString('en-GB');
   const signedPct = n => `${n>=0?'+':''}${(n*100).toFixed(2)}%`;
@@ -2763,7 +2947,12 @@ function buildManagerAumDashboard() {
   document.getElementById('pmAumCards').innerHTML = `
     <div class="pm-aum-card"><div class="pm-aum-label">Total assets under management</div><div class="pm-aum-value">${fmtGBP(totalAum)}</div><div class="pm-aum-sub">Combined assets across ${clients.length} client portfolios</div></div>
     <div class="pm-aum-card"><div class="pm-aum-label">Annualised standard deviation</div><div class="pm-aum-value">${(portfolioStdDev*100).toFixed(2)}%</div><div class="pm-aum-sub">Estimated aggregate portfolio volatility</div></div>
-    <div class="pm-aum-card"><div class="pm-aum-label">Total portfolio return</div><div class="pm-aum-value" style="color:${totalReturn>=0?'var(--green)':'var(--red)'}">${signedPct(totalReturn)}</div><div class="pm-aum-sub">${fmtGBP(totalReturnValue)} weighted illustrative gain across client AUM</div></div>`;
+    <div class="pm-aum-card"><div class="pm-aum-label">Total portfolio return</div><div class="pm-aum-value" style="color:${totalReturn>=0?'var(--green)':'var(--red)'}">${signedPct(totalReturn)}</div><div class="pm-aum-sub">${fmtGBP(totalReturnValue)} weighted illustrative gain across client AUM</div></div>
+    <div class="pm-aum-card pm-benchmark-card"><div class="pm-aum-label">Benchmark return · composite policy benchmark</div><div class="pm-aum-value">${signedPct(benchmarkReturn)}</div><div class="pm-aum-sub">Illustrative benchmark return over the same period</div></div>
+    <div class="pm-aum-card"><div class="pm-aum-label">Active return</div><div class="pm-aum-value" style="color:${activeReturn>=0?'var(--green)':'var(--red)'}">${signedPct(activeReturn)}</div><div class="pm-aum-sub">Manager return less benchmark return</div></div>
+    <div class="pm-aum-card"><div class="pm-aum-label">Active risk · tracking error</div><div class="pm-aum-value">${(activeRisk*100).toFixed(2)}%</div><div class="pm-aum-sub">Annualised estimated tracking error</div></div>
+    <div class="pm-aum-card"><div class="pm-aum-label">Information ratio</div><div class="pm-aum-value">${informationRatio.toFixed(2)}</div><div class="pm-aum-sub">Active return divided by active risk</div></div>
+    <div class="pm-benchmark-note" style="grid-column:1/-1">Benchmark-relative figures are illustrative and assume a one-year measurement window. Active risk is estimated using portfolio volatility ${(portfolioStdDev*100).toFixed(2)}%, benchmark volatility ${(benchmarkVolatility*100).toFixed(2)}%, and assumed portfolio/benchmark correlation ${(portfolioBenchmarkCorrelation*100).toFixed(0)}%. All return figures use the same assumed measurement period.</div>`;
   document.getElementById('pmAumClientRows').innerHTML = clients.map(c=>`
     <div class="pm-client-row">
       <span style="font-weight:600;color:var(--text)">${c.name}</span>
@@ -2781,10 +2970,12 @@ function buildManagerAumDashboard() {
 function buildDashboardDOM() {
   if (activeDemoClientId === null) {
     document.getElementById('dashboardTitle').textContent = 'Portfolio Manager Overview';
+    document.getElementById('clientSummaryBtn').style.display = 'none';
     buildManagerAumDashboard();
     return;
   }
   document.getElementById('dashboardTitle').textContent = `${DEMO_CLIENTS[activeDemoClientId].name} · Portfolio`;
+  document.getElementById('clientSummaryBtn').style.display = 'inline-flex';
   document.getElementById('pmAumPanel').style.display = 'none';
   document.getElementById('personalPortfolioCharts').style.display = '';
   document.getElementById('personalHoldingsCard').style.display = '';
