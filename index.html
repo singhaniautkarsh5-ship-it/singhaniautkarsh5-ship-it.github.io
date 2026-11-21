@@ -632,7 +632,7 @@
   </div>
   <div class="nav-right">
     <button class="btn-sm" id="navHoldings" style="display:none" onclick="showScreen('screen-holdings')">+ Holdings</button>
-    <button class="btn-sm btn-primary" id="navGetStarted" onclick="showAuthScreen('login')">Sign In</button>
+    <button class="btn-sm btn-primary" id="navGetStarted" style="display:none" aria-hidden="true" tabindex="-1">Sign In</button>
     <div class="user-menu" id="userMenu" style="display:none">
       <span id="pmNavLabel" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap;margin-right:9px">Alex Morgan</span><button class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()" aria-label="Open portfolio manager profile"></button>
       <div class="user-dropdown" id="userDropdown" style="display:none">
@@ -659,7 +659,7 @@
         </div>
         <div class="pm-menu-divider"></div>
         <div class="user-dropdown-item" onclick="showScreen('screen-holdings');toggleUserDropdown(true)">+ Edit Holdings</div>
-        <div class="user-dropdown-item danger" onclick="signOut()">Sign Out</div>
+        <div class="user-dropdown-item" onclick="resetDemoWorkspace();toggleUserDropdown(true)">Reset demo workspace</div>
       </div>
     </div>
   </div>
@@ -1212,6 +1212,14 @@ let currentUser = null;
 // They are stored only in this browser session and are never written to Supabase.
 let activeDemoClientId = null;
 let managerHoldingsSnapshot = null;
+const DEMO_MANAGER_HOLDINGS = [
+  {ticker:'MSFT',name:'Microsoft',sector:'Technology',market:'US',buy:365,qty:85,currentPrice:420},
+  {ticker:'NVDA',name:'NVIDIA',sector:'Technology',market:'US',buy:112,qty:120,currentPrice:138},
+  {ticker:'V',name:'Visa',sector:'Financial Services',market:'US',buy:255,qty:95,currentPrice:285},
+  {ticker:'LLY',name:'Eli Lilly',sector:'Healthcare',market:'US',buy:720,qty:28,currentPrice:790},
+  {ticker:'KO',name:'Coca-Cola',sector:'Consumer Defensive',market:'US',buy:58,qty:210,currentPrice:62},
+  {ticker:'BND',name:'Vanguard Total Bond Market ETF',sector:'Fixed Income',market:'US',buy:71,qty:500,currentPrice:73}
+];
 const DEMO_CLIENTS = {
   james: {
     name: 'James Wilson', label: 'Client 01', valueLabel: '£250,000',
@@ -1277,10 +1285,6 @@ function updateDemoPortfolioMenu() {
 }
 
 function switchDemoPortfolio(id) {
-  if (!currentUser) {
-    showToast('Please sign in to use the portfolio manager demo.');
-    return;
-  }
   if (activeDemoClientId === null || managerHoldingsSnapshot === null) managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
   if (id === 'manager') {
     activeDemoClientId = null;
@@ -1303,6 +1307,17 @@ function switchDemoPortfolio(id) {
   renderDashboard();
   renderHoldingsTable();
   if (activeDemoClientId) renderNews();
+}
+
+function resetDemoWorkspace() {
+  activeDemoClientId = null;
+  appState.holdings = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  managerHoldingsSnapshot = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  updateDemoPortfolioMenu();
+  showScreen('screen-dashboard');
+  renderDashboard();
+  renderHoldingsTable();
+  showToast('Demo workspace reset');
 }
 
 function getClientIPSSuitability(ticker, d) {
@@ -1363,8 +1378,9 @@ function togglePw(inputId, btn) {
 }
 
 function showAuthScreen(tab = 'login') {
-  document.getElementById('screen-auth').classList.add('show');
-  switchAuthTab(tab);
+  // Authentication is disabled in this presentation build.
+  showScreen('screen-dashboard');
+  return;
 }
 function hideAuthScreen() {
   document.getElementById('screen-auth').classList.remove('show');
@@ -2053,7 +2069,7 @@ function showScreen(id) {
     document.getElementById('navHoldings').style.display = 'inline-block';
     document.getElementById('navGetStarted').style.display = 'none';
     document.getElementById('indicesStrip').style.display = 'flex';
-    if (currentUser) document.getElementById('userMenu').style.display = 'inline-flex';
+    document.getElementById('userMenu').style.display = 'inline-flex';
   } else {
     document.getElementById('indicesStrip').style.display = 'none';
   }
@@ -2062,18 +2078,8 @@ function showScreen(id) {
   if (id === 'screen-watchlist') renderWatchlist();
 }
 function goHome() {
-  document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
-  document.getElementById('screen-onboarding').style.display = 'block';
-  document.getElementById('screen-onboarding').classList.add('active');
-  document.getElementById('navTabs').style.display = 'none';
-  document.getElementById('navHoldings').style.display = 'none';
-  if (currentUser) {
-    document.getElementById('navGetStarted').style.display = 'none';
-    document.getElementById('userMenu').style.display = 'inline-flex';
-  } else {
-    document.getElementById('navGetStarted').style.display = 'inline-block';
-    document.getElementById('userMenu').style.display = 'none';
-  }
+  showScreen('screen-dashboard');
+  renderDashboard();
 }
 
 // ════════════════════════════════════════
@@ -4421,50 +4427,33 @@ function showToast(msg) {
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  renderHoldingsTable();
   renderAlerts();
   renderHoldingSuggestions();
 
-  // Restore session on page load / refresh
-  let session = null;
-  try {
-    const result = await sb.auth.getSession();
-    session = result?.data?.session || null;
-  } catch(e) {
-    console.error('getSession failed:', e.message);
-  }
+  // Presentation mode: no sign-in or account setup. Load an illustrative manager workspace.
+  currentUser = null;
+  activeDemoClientId = null;
+  appState.holdings = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  managerHoldingsSnapshot = DEMO_MANAGER_HOLDINGS.map(h => ({...h}));
+  appState.watchlist = JSON.parse(localStorage.getItem('fw_watchlist') || '[]');
+  appState.alerts = JSON.parse(localStorage.getItem('fw_alerts') || '[]');
 
-  if (session?.user) {
-    try { currentUser = session.user; } catch(e) {}
-    try { setUserNav(currentUser); } catch(e) { console.error('setUserNav:', e.message); }
-
-    let loadOk = false;
-    try { loadOk = await dbLoadAll(); } catch(e) { console.error('dbLoadAll:', e.message); }
-    managerHoldingsSnapshot = appState.holdings.map(h => ({...h}));
-
-    console.log('Session restored:', currentUser.email, '| Holdings:', appState.holdings.length, '| Load:', loadOk);
-
-    if (appState.holdings.length) {
-      showScreen('screen-dashboard');
-      setTimeout(() => renderDashboard(), 100);
-      setTimeout(() => renderNews(), 200);
-      const existing = localStorage.getItem('fw_target_return');
-      if (!existing) setTimeout(showTargetReturnModal, 1400);
-    } else {
-      document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
-      document.getElementById('screen-onboarding').style.display = 'block';
-      document.getElementById('screen-onboarding').classList.add('active');
-      document.getElementById('navTabs').style.display = 'none';
-      document.getElementById('navHoldings').style.display = 'none';
-      document.getElementById('navGetStarted').style.display = 'none';
-      document.getElementById('userMenu').style.display = 'inline-flex';
-      document.getElementById('indicesStrip').style.display = 'none';
-    }
-  } else {
-    document.getElementById('navGetStarted').style.display = 'inline-block';
-  }
+  document.getElementById('navGetStarted').style.display = 'none';
+  document.getElementById('navTabs').style.display = 'flex';
+  document.getElementById('navHoldings').style.display = 'inline-block';
+  document.getElementById('userMenu').style.display = 'inline-flex';
+  document.getElementById('userAvatar').textContent = 'A';
+  document.getElementById('pmNavLabel').textContent = 'Alex Morgan';
+  document.getElementById('pmManagerName').textContent = 'Alex Morgan';
+  document.getElementById('userEmail').textContent = 'Demo workspace · Illustrative data';
+  hideAuthScreen();
+  updateDemoPortfolioMenu();
+  showScreen('screen-dashboard');
+  renderHoldingsTable();
+  renderDashboard();
+  renderNews();
 });
 </script>
 </body>
